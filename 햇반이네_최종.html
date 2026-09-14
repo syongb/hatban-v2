@@ -1,0 +1,2516 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>햇반이네 - 귀여운 학습 도우미</title>
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="햇반이네">
+    <meta name="theme-color" content="#FFE5EC">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Dongle&family=Gamja+Flower&family=Gowun+Batang&family=Gowun+Dodum&family=Hi+Melody&family=IBM+Plex+Sans+KR&family=Jua&family=Nanum+Gothic:wght@400;700&family=Nanum+Pen+Script&family=Nunito:wght@400;700&family=Poor+Story&family=Single+Day&family=Yeon+Sung&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SortableJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { pastel: { pink: '#FFE5EC', blue: '#E5F0FF', green: '#E5FFEC', yellow: '#FFF5E5', purple: '#F0E5FF' } },
+                    boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)', 'inner-soft': 'inset 0 2px 10px 0 rgba(0, 0, 0, 0.05)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root { --theme-bg: #FFE5EC; --theme-text: #ec4899; --theme-nav-active: #fdf2f8; }
+        body { background-color: #F8F9FA; overflow-x: hidden; font-family: 'Jua', sans-serif; transition: font-family 0.3s ease; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .card-inner { transition: transform 0.4s; transform-style: preserve-3d; }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { backface-visibility: hidden; position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .card-back { transform: rotateY(180deg); }
+        @keyframes jelly { 0%, 100% { transform: scale(1, 1); } 25% { transform: scale(1.05, 0.95); } 50% { transform: scale(0.95, 1.05); } 75% { transform: scale(1.02, 0.98); } }
+        @keyframes pulse-border { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .jelly-hover:hover { animation: jelly 0.5s ease-in-out infinite; }
+        .derp-float { animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .nav-btn.active-tab { color: var(--theme-text) !important; background-color: var(--theme-nav-active) !important; }
+        .mine-board-container { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; display: grid; gap: 4px; justify-content: center; }
+        .mine-cell { transition: transform 0.1s ease-in-out; }
+        .sortable-ghost { opacity: 0.4; transform: scale(0.95); border: 2px dashed var(--theme-text); }
+        #drawing-board { touch-action: none; cursor: crosshair; }
+        .tt-cell { position: relative; transition: all 0.2s; }
+        .tt-cell:hover { transform: scale(1.02); z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .tt-badge { position: absolute; top: -8px; right: -8px; animation: jelly 1.5s infinite; }
+        .grid-bg { background-color: white; background-image: linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px); background-size: 30px 30px; }
+        .lined-bg { background-color: transparent; background-image: linear-gradient(transparent 95%, #fde68a 5%); background-size: 100% 1.8em; line-height: 1.8em; }
+        .current-period-highlight { border: 4px solid #ef4444 !important; animation: pulse-border 2s infinite; z-index: 5; transform: scale(1.03); }
+        input[type="color"] { -webkit-appearance: none; border: none; padding: 0; background: none; }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .tictactoe-cell { cursor: pointer; transition: background 0.2s; box-sizing: border-box; }
+        .tictactoe-cell:hover { background: #f3e8ff; }
+        
+        .gomoku-cell { cursor: pointer; position: relative; }
+        .gomoku-cell::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background-color: #5c3a21; transform: translateX(-50%); z-index: 1; }
+        .gomoku-cell::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background-color: #5c3a21; transform: translateY(-50%); z-index: 1; }
+        .gomoku-row-0 .gomoku-cell::before { top: 50%; }
+        .gomoku-row-14 .gomoku-cell::before { bottom: 50%; }
+        .gomoku-col-0::after { left: 50%; }
+        .gomoku-col-14::after { right: 50%; }
+
+        .sudoku-cell { outline: 1px solid #ccc; text-align: center; font-weight: bold; cursor: pointer; }
+        .sudoku-cell.selected { background-color: #e0e7ff !important; outline: 2px solid #4f46e5; z-index: 10; }
+        .record-list li { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px dashed #e5e7eb; }
+        .record-list li:last-child { border-bottom: none; }
+    </style>
+</head>
+<body class="text-gray-700 h-screen w-screen flex flex-col bg-[#f0f4f8] overflow-hidden text-lg">
+
+    <div class="w-full h-full flex flex-col overflow-hidden bg-[#fafafa]">
+        <!-- Header -->
+        <div class="shadow-soft relative z-20 shrink-0 transition-colors duration-300" style="background-color: var(--theme-bg);">
+            <div class="max-w-6xl mx-auto p-4 md:p-5 flex flex-wrap items-center justify-between gap-4">
+                
+                <!-- 앱 로고/타이틀 (클릭 시 모달) -->
+                <div class="flex items-center gap-3 md:gap-4 group cursor-pointer" onclick="openProfileModal()" title="이름과 로고 수정하기">
+                    <div class="w-16 h-16 md:w-20 md:h-20 shrink-0 relative">
+                        <div id="app-logo-svg" class="w-full h-full derp-float">
+                            <svg viewBox="0 0 100 100" class="drop-shadow-md w-full h-full">
+                                <path d="M 12 55 Q -5 45 10 35" stroke="white" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.8"/>
+                                <path d="M 88 55 Q 105 45 90 35" stroke="white" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.8"/>
+                                <path d="M 35 85 L 30 100" stroke="white" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.8"/>
+                                <path d="M 65 85 L 70 100" stroke="white" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.8"/>
+                                <path d="M50,90 C15,90 5,65 10,40 C15,15 30,5 50,5 C70,5 85,15 90,40 C95,65 85,90 50,90 Z" fill="white" />
+                                <circle cx="32" cy="45" r="5.5" fill="#ef4444" />
+                                <circle cx="68" cy="45" r="5.5" fill="#555" />
+                                <path d="M45,55 Q50,63 55,55" stroke="#555" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                <ellipse cx="22" cy="52" rx="4" ry="2" fill="#ffb6c1" opacity="0.8"/>
+                                <ellipse cx="78" cy="52" rx="4" ry="2" fill="#ffb6c1" opacity="0.8"/>
+                            </svg>
+                        </div>
+                        <div id="app-logo-emoji" class="hidden w-full h-full flex items-center justify-center text-4xl md:text-5xl derp-float bg-white/60 rounded-full shadow-sm border border-pink-100"></div>
+                        <span class="absolute -right-1 -bottom-1 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition z-10"><i class="fa-solid fa-pen"></i></span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl mb-1 flex items-center gap-2 font-bold transition-colors duration-300" style="color: var(--theme-text);">
+                            <span id="app-title-text">햇반이네</span>
+                        </h1>
+                        <div class="group/quote relative cursor-pointer inline-block" onclick="event.stopPropagation(); editQuote()" title="문구 수정하기">
+                            <p id="daily-quote" class="text-sm md:text-base text-gray-700 bg-white/70 p-2 px-4 rounded-xl inline-block mt-1 shadow-sm font-bold group-hover/quote:bg-white transition">
+                                오늘도 신나게 배워볼까? 얍!
+                            </p>
+                            <span class="absolute -right-2 -top-2 bg-white rounded-full w-5 h-5 flex items-center justify-center shadow text-xs text-gray-400 opacity-0 group-hover/quote:opacity-100 transition"><i class="fa-solid fa-pen"></i></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 bg-white/60 p-2 md:p-3 rounded-2xl shadow-sm backdrop-blur-sm">
+                    <i class="fa-solid fa-palette text-gray-400 text-sm md:text-base ml-1"></i>
+                    <select id="font-select" onchange="changeFont(this.value)" class="p-1 rounded-xl bg-white border border-gray-200 text-xs md:text-sm font-bold cursor-pointer outline-none w-24 md:w-32 focus:ring-2 focus:ring-pink-200">
+                        <option value="'Jua', sans-serif">주아체 (기본)</option>
+                        <option value="'Dongle', sans-serif">동글</option>
+                        <option value="'Gamja Flower', cursive">감자꽃</option>
+                        <option value="'Hi Melody', cursive">하이멜로디</option>
+                        <option value="'Poor Story', cursive">푸어스토리</option>
+                        <option value="'Single Day', cursive">싱글데이</option>
+                        <option value="'Nanum Pen Script', cursive">나눔손글씨 펜</option>
+                        <option value="'Yeon Sung', cursive">연성</option>
+                        <option value="'Gowun Dodum', sans-serif">고운돋움</option>
+                        <option value="'Gowun Batang', serif">고운바탕</option>
+                        <option value="'Nanum Gothic', sans-serif">나눔고딕</option>
+                        <option value="'Do Hyeon', sans-serif">도현</option>
+                        <option value="'Black Han Sans', sans-serif">블랙한산스</option>
+                        <option value="'IBM Plex Sans KR', sans-serif">IBM 돋움</option>
+                        <option value="'Nunito', sans-serif">영문(Nunito)</option>
+                    </select>
+                    <div class="flex items-center bg-white rounded-full border border-gray-200 shadow-sm pr-1 py-0.5 ml-1">
+                        <input type="color" id="theme-color-picker" class="w-7 h-7 md:w-8 md:h-8 cursor-pointer bg-transparent border-0 p-0 rounded-full" value="#ec4899" title="테마 색상 변경">
+                        <button onclick="applyThemeColor()" class="text-xs md:text-sm font-bold text-gray-600 hover:text-pink-500 px-2 py-1 rounded-full transition whitespace-nowrap">적용</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 네비게이션 탭 -->
+            <div class="bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm shrink-0">
+                <div class="max-w-4xl mx-auto flex justify-around py-2">
+                    <button onclick="switchTab('tab-home')" class="flex flex-col items-center text-gray-400 nav-btn active-tab px-4 md:px-6 py-2 rounded-2xl transition" data-target="tab-home">
+                        <i class="fa-solid fa-house text-2xl mb-1"></i><span class="text-sm md:text-base font-bold">홈</span>
+                    </button>
+                    <button onclick="switchTab('tab-notebook')" class="flex flex-col items-center text-gray-400 nav-btn px-4 md:px-6 py-2 rounded-2xl transition" data-target="tab-notebook">
+                        <i class="fa-solid fa-book-open text-2xl mb-1"></i><span class="text-sm md:text-base font-bold">배움공책</span>
+                    </button>
+                    <button onclick="switchTab('tab-helpers')" class="flex flex-col items-center text-gray-400 nav-btn px-4 md:px-6 py-2 rounded-2xl transition" data-target="tab-helpers">
+                        <i class="fa-solid fa-toolbox text-2xl mb-1"></i><span class="text-sm md:text-base font-bold">도우미</span>
+                    </button>
+                    <button onclick="switchTab('tab-game')" class="flex flex-col items-center text-gray-400 nav-btn px-4 md:px-6 py-2 rounded-2xl transition" data-target="tab-game">
+                        <i class="fa-solid fa-gamepad text-2xl mb-1"></i><span class="text-sm md:text-base font-bold">집중 게임</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 relative w-full max-w-6xl mx-auto">
+            
+            <!-- TAB 1: 홈 -->
+            <div id="tab-home" class="tab-content active pb-10">
+                
+                <!-- 커스텀 디데이 영역 -->
+                <div class="flex justify-end mb-4">
+                    <div onclick="openDdayModal()" class="bg-blue-50 text-blue-600 px-6 py-3 rounded-2xl font-bold shadow-sm flex items-center gap-3 border border-blue-100 transform hover:scale-105 transition cursor-pointer group">
+                        <span class="text-lg md:text-xl"><span id="d-day-name">여름방학</span>까지 <span id="d-day-count" class="text-2xl md:text-3xl text-blue-800 bg-white px-3 py-1 rounded-xl shadow-sm">0</span>일!</span>
+                        <span class="text-blue-300 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen"></i></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-3xl shadow-soft border border-gray-100 h-full flex flex-col min-h-[300px]">
+                        <div class="flex justify-between items-center mb-4 shrink-0">
+                            <h2 class="text-xl md:text-2xl flex items-center gap-2 font-bold" style="color: var(--theme-text);">
+                                <i class="fa-solid fa-note-sticky"></i> 까먹지 마! 메모장
+                            </h2>
+                            <button onclick="openMemoModal()" class="text-white w-10 h-10 md:w-12 md:h-12 text-xl rounded-full shadow-lg hover:brightness-110 jelly-hover flex justify-center items-center transition" style="background-color: var(--theme-text);"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <p class="text-sm text-gray-400 font-bold mb-4">💡 꿀팁: 메모를 클릭하면 수정할 수 있어요!</p>
+                        <div id="memo-container" class="grid grid-cols-2 lg:grid-cols-3 gap-4 flex-1 content-start"></div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-3xl shadow-soft border border-gray-100 h-fit">
+                        <h2 class="text-xl md:text-2xl mb-6 flex items-center gap-2 font-bold" style="color: var(--theme-text);">
+                            <i class="fa-solid fa-star text-yellow-400"></i> 오늘의 나를 평가해요!
+                        </h2>
+                        <p class="text-sm text-gray-400 font-bold mb-4">💡 별을 누르면 반 개씩 올라가요!</p>
+                        <div class="space-y-6">
+                            <div class="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <span class="text-base md:text-lg font-bold text-gray-700">수업 태도</span>
+                                <div class="flex gap-2 md:gap-3 text-3xl md:text-4xl" id="stars-attitude">
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('attitude', 1)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('attitude', 2)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('attitude', 3)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('attitude', 4)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('attitude', 5)"></i>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <span class="text-base md:text-lg font-bold text-gray-700">선생님 말씀 집중</span>
+                                <div class="flex gap-2 md:gap-3 text-3xl md:text-4xl" id="stars-listen">
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('listen', 1)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('listen', 2)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('listen', 3)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('listen', 4)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('listen', 5)"></i>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <span class="text-base md:text-lg font-bold text-gray-700">학습 성과</span>
+                                <div class="flex gap-2 md:gap-3 text-3xl md:text-4xl" id="stars-outcome">
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('outcome', 1)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('outcome', 2)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('outcome', 3)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('outcome', 4)"></i>
+                                    <i class="fa-regular fa-star text-yellow-400 cursor-pointer transition-all hover:scale-110" onclick="toggleStar('outcome', 5)"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: 스마트 배움공책 -->
+            <div id="tab-notebook" class="tab-content pb-10">
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="text-3xl md:text-4xl">🏫</div>
+                            <div>
+                                <h2 class="text-2xl md:text-3xl font-bold text-gray-800">햇반 스마트 시간표</h2>
+                                <p class="text-sm text-gray-500 mt-1 font-bold"><span class="text-red-500">빨간색 테두리</span>는 현재 수업 시간이에요!</p>
+                            </div>
+                        </div>
+                        <button onclick="openCollectionModal()" class="bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-indigo-600 transition flex items-center justify-center gap-2 jelly-hover w-full md:w-auto text-lg">
+                            <i class="fa-solid fa-layer-group"></i> 배움 모아보기 및 다운로드
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto bg-gray-50 rounded-2xl p-4 border border-gray-200 shadow-inner">
+                        <div class="min-w-[700px] grid grid-cols-6 gap-3 text-center" id="timetable-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: 학습 도우미 -->
+            <div id="tab-helpers" class="tab-content pb-10">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div onclick="openDict('ko')" class="bg-white p-6 rounded-3xl shadow-soft border-b-8 border-pastel-pink text-center cursor-pointer hover:-translate-y-2 transition duration-300">
+                        <div class="text-5xl mb-4">📖</div><h3 class="font-bold text-lg text-gray-700">국어 사전</h3>
+                    </div>
+                    <div onclick="openDict('hanja')" class="bg-white p-6 rounded-3xl shadow-soft border-b-8 border-pastel-blue text-center cursor-pointer hover:-translate-y-2 transition duration-300">
+                        <div class="text-5xl mb-4">漢</div><h3 class="font-bold text-lg text-gray-700">한자 사전</h3>
+                    </div>
+                    <div onclick="document.getElementById('calc-modal').classList.remove('hidden')" class="bg-white p-6 rounded-3xl shadow-soft border-b-8 border-pastel-green text-center cursor-pointer hover:-translate-y-2 transition duration-300">
+                        <div class="text-5xl mb-4">🧮</div><h3 class="font-bold text-lg text-gray-700">단순 계산기</h3>
+                    </div>
+                    <a href="https://www.hancomtaja.com/ko#main__taja" target="_blank" class="bg-white p-6 rounded-3xl shadow-soft border-b-8 border-gray-300 text-center block hover:-translate-y-2 transition duration-300">
+                        <div class="text-5xl mb-4 text-gray-600"><i class="fa-solid fa-keyboard"></i></div><h3 class="font-bold text-lg text-gray-700">타자 연습</h3>
+                    </a>
+                    <a href="https://play.blooket.com/play" target="_blank" class="bg-white p-6 rounded-3xl shadow-soft border-b-8 border-blue-400 text-center block hover:-translate-y-2 transition duration-300">
+                        <div class="text-5xl mb-4 text-blue-500 font-black tracking-tighter">B</div><h3 class="font-bold text-lg text-gray-700">블루켓</h3>
+                    </a>
+                    <div onclick="openTimeModal()" class="bg-white p-6 rounded-3xl shadow-soft border-b-8 border-orange-300 text-center cursor-pointer hover:-translate-y-2 transition duration-300">
+                        <div class="text-5xl mb-4">⏱️</div><h3 class="font-bold text-lg text-gray-700">시간 관리</h3>
+                    </div>
+                    <a href="https://school.art-bonbon.com/ko" target="_blank" class="bg-white p-6 rounded-3xl shadow-soft border-b-8 border-pastel-yellow text-center block hover:-translate-y-2 transition duration-300">
+                        <div class="text-5xl mb-4">🎨</div><h3 class="font-bold text-lg text-gray-700">아트봉봉</h3>
+                    </a>
+                    <a href="https://www.canva.com/ko_kr/" target="_blank" class="bg-white p-6 rounded-3xl shadow-soft border-b-8 border-cyan-400 text-center block hover:-translate-y-2 transition duration-300">
+                        <div class="text-5xl mb-4 text-cyan-500 font-black tracking-tighter">C</div><h3 class="font-bold text-lg text-gray-700">캔바</h3>
+                    </a>
+                    <a href="https://padlet.com/syongb/padlet-ujpvg6owdu5njm0u" target="_blank" class="bg-white p-6 rounded-3xl shadow-soft border-b-8 border-purple-400 text-center block hover:-translate-y-2 transition duration-300">
+                        <div class="text-5xl mb-4 text-purple-500"><i class="fa-solid fa-paperclip"></i></div><h3 class="font-bold text-lg text-gray-700">햇반 패들렛</h3>
+                    </a>
+                </div>
+            </div>
+
+            <!-- TAB 4: 집중 게임 -->
+            <div id="tab-game" class="tab-content pb-10">
+                <div id="game-menu" class="w-full">
+                    <h2 class="text-2xl md:text-3xl text-gray-700 mb-6 font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-gamepad text-green-500"></i> 집중력 쑥쑥 게임
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div onclick="openGame('match')" class="bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex items-center gap-5 cursor-pointer hover:-translate-y-2 transition duration-300">
+                            <div class="w-16 h-16 bg-pink-100 rounded-2xl flex items-center justify-center text-4xl shrink-0">🧠</div>
+                            <div class="text-left flex-1">
+                                <h3 class="font-bold text-xl text-gray-700">햇반이 짝맞추기</h3>
+                                <p class="text-sm text-gray-500 font-bold">일반 / 횟수 / 시간제한</p>
+                            </div>
+                        </div>
+                        <div onclick="openGame('math')" class="bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex items-center gap-5 cursor-pointer hover:-translate-y-2 transition duration-300">
+                            <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-4xl shrink-0">⚡</div>
+                            <div class="text-left flex-1">
+                                <h3 class="font-bold text-xl text-gray-700">스피드 암산</h3>
+                                <p class="text-sm text-gray-500 font-bold">곱셈 / 나눗셈 모드</p>
+                            </div>
+                        </div>
+                        <div onclick="openGame('mine')" class="bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex items-center gap-5 cursor-pointer hover:-translate-y-2 transition duration-300">
+                            <div class="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center text-4xl shrink-0">💣</div>
+                            <div class="text-left flex-1">
+                                <h3 class="font-bold text-xl text-gray-700">지뢰찾기</h3>
+                                <p class="text-sm text-gray-500 font-bold">초급 / 중급 / 고급</p>
+                            </div>
+                        </div>
+                        <div onclick="openGame('tensec')" class="bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex items-center gap-5 cursor-pointer hover:-translate-y-2 transition duration-300">
+                            <div class="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center text-4xl shrink-0">⏱️</div>
+                            <div class="text-left flex-1">
+                                <h3 class="font-bold text-xl text-gray-700">10초 맞추기</h3>
+                                <p class="text-sm text-gray-500 font-bold">정확한 타이밍 감각!</p>
+                            </div>
+                        </div>
+                        <div onclick="openGame('tictactoe')" class="bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex items-center gap-5 cursor-pointer hover:-translate-y-2 transition duration-300">
+                            <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center text-4xl shrink-0">❌</div>
+                            <div class="text-left flex-1">
+                                <h3 class="font-bold text-xl text-gray-700">틱택토</h3>
+                                <p class="text-sm text-gray-500 font-bold">2인용 3줄 잇기</p>
+                            </div>
+                        </div>
+                        <div onclick="openGame('gomoku')" class="bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex items-center gap-5 cursor-pointer hover:-translate-y-2 transition duration-300">
+                            <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center text-4xl shrink-0">⚫</div>
+                            <div class="text-left flex-1">
+                                <h3 class="font-bold text-xl text-gray-700">오목</h3>
+                                <p class="text-sm text-gray-500 font-bold">2인용 5알 잇기</p>
+                            </div>
+                        </div>
+                        <div onclick="openGame('baseball')" class="bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex items-center gap-5 cursor-pointer hover:-translate-y-2 transition duration-300">
+                            <div class="w-16 h-16 bg-yellow-100 rounded-2xl flex items-center justify-center text-4xl shrink-0">⚾</div>
+                            <div class="text-left flex-1">
+                                <h3 class="font-bold text-xl text-gray-700">숫자 야구</h3>
+                                <p class="text-sm text-gray-500 font-bold">3,4,5자리 비밀번호 찾기</p>
+                            </div>
+                        </div>
+                        <div onclick="openGame('sudoku')" class="bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex items-center gap-5 cursor-pointer hover:-translate-y-2 transition duration-300">
+                            <div class="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-4xl shrink-0">🔢</div>
+                            <div class="text-left flex-1">
+                                <h3 class="font-bold text-xl text-gray-700">스도쿠</h3>
+                                <p class="text-sm text-gray-500 font-bold">초급 / 중급 / 고급</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [1] 짝맞추기 -->
+                <div id="game-match" class="hidden bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex flex-col items-center w-full max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center w-full mb-6">
+                        <button onclick="showGameMenu()" class="text-gray-500 hover:text-pink-500 font-bold text-lg px-4 py-2 bg-gray-100 rounded-xl transition"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+                        <h2 class="text-2xl font-bold text-pink-500">짝맞추기</h2>
+                        <button onclick="showMatchConfig()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-300">설정</button>
+                    </div>
+                    <div id="match-config-ui" class="flex flex-col items-center bg-pink-50 p-6 rounded-2xl w-full max-w-md">
+                        <h3 class="text-xl font-bold text-gray-700 mb-4">게임 설정</h3>
+                        <select id="match-mode-select" class="mb-4 p-2 rounded-xl w-full font-bold" onchange="toggleMatchModeUI()">
+                            <option value="normal">일반 모드 (자유 연습)</option>
+                            <option value="moves">횟수 제한 (20장 / 30회 내)</option>
+                            <option value="time">시간 제한 (20장 / 60초 내)</option>
+                        </select>
+                        <div id="match-cards-ui" class="flex items-center gap-4 mb-6 w-full justify-between">
+                            <span class="font-bold text-sm">카드 개수: <span id="match-card-count-label">20</span>장</span>
+                            <input type="range" id="match-card-slider" min="10" max="50" step="2" value="20" class="w-32 accent-pink-500" oninput="document.getElementById('match-card-count-label').innerText = this.value">
+                        </div>
+                        <div class="w-full bg-white p-4 rounded-xl shadow-sm mb-6 text-sm font-bold text-gray-600">
+                            🏆 명예의 전당 (Top 3)<br>
+                            <div id="record-list-match" class="mt-2 text-xs font-normal"></div>
+                        </div>
+                        <button onclick="initMatchGame()" class="w-full bg-pink-500 text-white py-3 rounded-xl font-bold text-xl hover:bg-pink-600 shadow-md">게임 시작!</button>
+                    </div>
+                    <div id="match-game-ui" class="hidden w-full flex flex-col items-center">
+                        <div class="flex gap-4 mb-6 font-bold text-lg bg-gray-50 px-6 py-3 rounded-2xl border border-gray-200 w-full justify-between max-w-3xl">
+                            <span class="text-pink-500">진행 횟수: <span id="game-moves">0</span></span>
+                            <span class="text-blue-500" id="match-time-display-container">남은 시간: <span id="game-match-time">0</span>초</span>
+                        </div>
+                        <div id="match-board" class="grid gap-2 perspective-1000 w-full max-w-3xl place-content-center"></div>
+                    </div>
+                </div>
+
+                <!-- [2] 스피드 암산 -->
+                <div id="game-math" class="hidden bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex flex-col items-center max-w-2xl mx-auto">
+                    <div class="flex justify-between items-center w-full mb-6">
+                        <button onclick="showGameMenu()" class="text-gray-500 hover:text-blue-500 font-bold text-lg px-4 py-2 bg-gray-100 rounded-xl transition"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+                        <h2 class="text-2xl font-bold text-blue-500">스피드 암산</h2>
+                        <button onclick="showMathConfig()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-300">설정</button>
+                    </div>
+                    <div id="math-config-ui" class="flex flex-col items-center bg-blue-50 p-6 rounded-2xl w-full max-w-md">
+                        <h3 class="text-xl font-bold text-gray-700 mb-4">모드 선택</h3>
+                        <select id="math-mode-select" class="mb-6 p-2 rounded-xl w-full font-bold" onchange="renderMathRecords()">
+                            <option value="mul">곱셈 모드</option>
+                            <option value="div">나눗셈 모드</option>
+                        </select>
+                        <div class="w-full bg-white p-4 rounded-xl shadow-sm mb-6 text-sm font-bold text-gray-600">
+                            🏆 명예의 전당 (Top 3)<br>
+                            <div id="record-list-math" class="mt-2 text-xs font-normal"></div>
+                        </div>
+                        <button onclick="initMathGame()" class="w-full bg-blue-500 text-white py-3 rounded-xl font-bold text-xl hover:bg-blue-600 shadow-md">게임 시작!</button>
+                    </div>
+                    <div id="math-game-ui" class="hidden w-full flex flex-col items-center">
+                        <div class="flex justify-between items-center w-full mb-6 max-w-sm">
+                            <span class="text-blue-500 font-bold text-xl bg-blue-50 px-4 py-2 rounded-xl">점수: <span id="math-score">0</span>점</span>
+                        </div>
+                        <div class="w-full max-w-sm bg-gray-200 rounded-full h-4 mb-6 overflow-hidden">
+                            <div id="math-timer-bar" class="bg-blue-500 h-full rounded-full transition-all duration-1000" style="width: 100%"></div>
+                        </div>
+                        <div id="math-question" class="text-5xl font-bold text-gray-700 mb-4 font-mono tracking-widest">10 × 2 =</div>
+                        <div id="math-input-display" class="text-4xl text-blue-600 font-bold h-16 mb-8 bg-blue-50 w-full max-w-sm rounded-2xl flex items-center justify-center border-4 border-blue-100 tracking-widest shadow-inner">?</div>
+                        <div class="grid grid-cols-3 gap-3 w-full max-w-sm">
+                            <button onclick="mathNumpad('1')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">1</button>
+                            <button onclick="mathNumpad('2')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">2</button>
+                            <button onclick="mathNumpad('3')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">3</button>
+                            <button onclick="mathNumpad('4')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">4</button>
+                            <button onclick="mathNumpad('5')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">5</button>
+                            <button onclick="mathNumpad('6')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">6</button>
+                            <button onclick="mathNumpad('7')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">7</button>
+                            <button onclick="mathNumpad('8')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">8</button>
+                            <button onclick="mathNumpad('9')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">9</button>
+                            <button onclick="mathNumpad('DEL')" class="bg-red-100 text-red-500 py-4 rounded-2xl font-bold text-2xl"><i class="fa-solid fa-delete-left"></i></button>
+                            <button onclick="mathNumpad('0')" class="bg-gray-100 py-4 rounded-2xl font-bold text-2xl">0</button>
+                            <button onclick="mathNumpad('ENTER')" class="bg-blue-500 text-white py-4 rounded-2xl font-bold text-2xl"><i class="fa-solid fa-check"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [3] 지뢰찾기 -->
+                <div id="game-mine" class="hidden bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex flex-col items-center w-full max-w-3xl mx-auto">
+                    <div class="flex justify-between items-center w-full mb-6">
+                        <button onclick="showGameMenu()" class="text-gray-500 hover:text-gray-700 font-bold text-lg px-4 py-2 bg-gray-100 rounded-xl transition"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+                        <h2 class="text-2xl font-bold text-gray-700">지뢰찾기</h2>
+                        <button onclick="showMineConfig()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-300">설정</button>
+                    </div>
+                    <div id="mine-config-ui" class="flex flex-col items-center bg-gray-50 p-6 rounded-2xl w-full max-w-md">
+                        <h3 class="text-xl font-bold text-gray-700 mb-4">난이도 선택</h3>
+                        <select id="mine-level-select" class="mb-6 p-2 rounded-xl w-full font-bold">
+                            <option value="10">초급 (10x10, 지뢰 15개)</option>
+                            <option value="15">중급 (15x15, 지뢰 35개)</option>
+                            <option value="20">고급 (20x20, 지뢰 50개)</option>
+                        </select>
+                        <button onclick="initMineGame()" class="w-full bg-gray-600 text-white py-3 rounded-xl font-bold text-xl hover:bg-gray-700 shadow-md">게임 시작!</button>
+                    </div>
+                    <div id="mine-game-ui" class="hidden w-full flex flex-col items-center">
+                        <div class="flex justify-between items-center w-full max-w-[600px] mb-4 bg-gray-100 p-3 rounded-xl">
+                            <span class="text-red-500 font-bold text-xl"><i class="fa-solid fa-bomb"></i> <span id="mine-count">10</span></span>
+                            <button onclick="openMineHelp()" class="text-yellow-600 font-bold text-sm bg-yellow-100 px-3 py-1 rounded-lg"><i class="fa-solid fa-lightbulb"></i> 팁</button>
+                        </div>
+                        <div class="overflow-auto max-w-full bg-gray-200 p-2 rounded-xl">
+                            <div id="mine-board" class="mine-board-container w-fit"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [4] 10초 맞추기 -->
+                <div id="game-tensec" class="hidden bg-white p-6 md:p-10 rounded-3xl shadow-soft border border-gray-100 flex flex-col items-center max-w-md mx-auto">
+                    <div class="flex justify-between items-center w-full mb-6">
+                        <button onclick="showGameMenu()" class="text-gray-500 hover:text-orange-500 font-bold text-lg px-4 py-2 bg-gray-100 rounded-xl transition"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+                        <h2 class="text-2xl font-bold text-orange-500">10초 맞추기</h2>
+                        <div class="w-[72px]"></div>
+                    </div>
+                    <div class="w-full bg-orange-50 p-4 rounded-xl shadow-sm mb-6 text-sm font-bold text-gray-600 text-center">
+                        🏆 명예의 전당 (Top 3) - 오차가 적은 순<br>
+                        <div id="record-list-tensec" class="mt-2 text-xs font-normal"></div>
+                    </div>
+                    <div class="text-center mb-8">
+                        <p class="text-gray-500 font-bold mb-2">5초 후엔 타이머가 안 보여요. 마음속으로 10초를 잡아라!</p>
+                        <div id="tensec-display" class="text-7xl font-mono font-black text-gray-800 tracking-wider h-24 flex items-center justify-center transition-colors">0.00</div>
+                    </div>
+                    <button id="tensec-btn" onclick="toggleTenSec()" class="w-40 h-40 md:w-48 md:h-48 rounded-full bg-orange-400 text-white text-3xl font-black shadow-[0_10px_0_0_#c2410c] active:shadow-[0_0px_0_0_#c2410c] active:translate-y-2 transition-all hover:bg-orange-500">START</button>
+                </div>
+
+                <!-- [5] 틱택토 -->
+                <div id="game-tictactoe" class="hidden bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex flex-col items-center max-w-md mx-auto">
+                    <div class="flex justify-between items-center w-full mb-8">
+                        <button onclick="showGameMenu()" class="text-gray-500 hover:text-purple-500 font-bold text-lg px-4 py-2 bg-gray-100 rounded-xl transition"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+                        <h2 class="text-2xl font-bold text-purple-500">틱택토 (2인용)</h2>
+                        <button onclick="initTicTacToe()" class="bg-purple-500 text-white px-4 py-2 rounded-xl font-bold">다시</button>
+                    </div>
+                    <div id="tictactoe-status" class="text-xl font-bold mb-6 text-blue-600 bg-blue-50 px-6 py-2 rounded-full border border-blue-200">1P (O) 차례</div>
+                    <div id="tictactoe-board" class="grid grid-cols-3 gap-2 bg-gray-300 p-2 rounded-2xl w-fit mx-auto">
+                        <!-- JS 렌더링 -->
+                    </div>
+                </div>
+
+                <!-- [6] 오목 -->
+                <div id="game-gomoku" class="hidden bg-white p-4 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex flex-col items-center w-full max-w-2xl mx-auto">
+                    <div class="flex justify-between items-center w-full mb-6">
+                        <button onclick="showGameMenu()" class="text-gray-500 hover:text-green-500 font-bold text-lg px-4 py-2 bg-gray-100 rounded-xl transition"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+                        <h2 class="text-2xl font-bold text-green-600">오목 (2인용)</h2>
+                        <button onclick="initGomoku()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold">다시</button>
+                    </div>
+                    <div id="gomoku-status" class="text-xl font-bold mb-4 text-gray-800 bg-gray-100 px-6 py-2 rounded-full border border-gray-300">⚫ 흑돌 차례</div>
+                    <div class="w-full flex justify-center bg-[#DCB35C] p-2 md:p-3 rounded-xl shadow-inner border-[6px] border-[#8b5a2b] aspect-square max-w-[400px] md:max-w-[450px] mx-auto">
+                        <div id="gomoku-board" class="grid grid-cols-[repeat(15,minmax(0,1fr))] w-full h-full border border-[#5c3a21]">
+                            <!-- JS 렌더링 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [7] 숫자야구 -->
+                <div id="game-baseball" class="hidden bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex flex-col items-center max-w-md mx-auto">
+                    <div class="flex justify-between items-center w-full mb-6">
+                        <button onclick="showGameMenu()" class="text-gray-500 hover:text-yellow-500 font-bold text-lg px-4 py-2 bg-gray-100 rounded-xl transition"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+                        <h2 class="text-2xl font-bold text-yellow-600">숫자 야구</h2>
+                        <button onclick="showBaseballConfig()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-300">설정</button>
+                    </div>
+                    <div id="baseball-config-ui" class="flex flex-col items-center bg-yellow-50 p-6 rounded-2xl w-full">
+                        <h3 class="font-bold text-gray-700 mb-4">자릿수 선택</h3>
+                        <select id="baseball-digit-select" class="mb-6 p-2 rounded-xl w-full font-bold">
+                            <option value="3">3자리 숫자</option>
+                            <option value="4">4자리 숫자</option>
+                            <option value="5">5자리 숫자 (어려움)</option>
+                        </select>
+                        <button onclick="initBaseball()" class="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold text-xl hover:bg-yellow-600 shadow-md">새 게임 시작!</button>
+                    </div>
+                    <div id="baseball-game-ui" class="hidden w-full flex flex-col items-center">
+                        <p class="text-gray-500 font-bold text-sm mb-4 text-center">겹치지 않는 <span id="bb-target-length" class="text-yellow-600">3</span>자리 숫자를 맞춰보세요!</p>
+                        <div class="flex gap-2 w-full mb-4">
+                            <input type="number" id="baseball-input" class="flex-1 bg-gray-100 border-2 border-gray-200 rounded-2xl p-4 text-2xl font-bold text-center outline-none focus:border-yellow-400" placeholder="숫자 입력" onkeypress="if(event.key==='Enter') guessBaseball()">
+                            <button onclick="guessBaseball()" class="bg-yellow-500 text-white px-6 rounded-2xl font-bold text-xl hover:bg-yellow-600">던지기</button>
+                        </div>
+                        <div id="baseball-log" class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 h-56 overflow-y-auto space-y-2 font-mono font-bold text-lg flex flex-col-reverse">
+                            <!-- 로그 출력 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [8] 스도쿠 -->
+                <div id="game-sudoku" class="hidden bg-white p-6 md:p-8 rounded-3xl shadow-soft border border-gray-100 flex flex-col items-center w-full max-w-lg mx-auto">
+                    <div class="flex justify-between items-center w-full mb-6">
+                        <button onclick="showGameMenu()" class="text-gray-500 hover:text-indigo-500 font-bold text-lg px-4 py-2 bg-gray-100 rounded-xl transition"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+                        <h2 class="text-2xl font-bold text-indigo-600">스도쿠</h2>
+                        <button onclick="showSudokuConfig()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-300">설정</button>
+                    </div>
+                    
+                    <div id="sudoku-config-ui" class="flex flex-col items-center bg-indigo-50 p-6 rounded-2xl w-full max-w-sm">
+                        <h3 class="font-bold text-gray-700 mb-4">난이도 선택</h3>
+                        <select id="sudoku-level-select" class="mb-6 p-2 rounded-xl w-full font-bold">
+                            <option value="20">초급 (빈칸 20개)</option>
+                            <option value="40">중급 (빈칸 40개)</option>
+                            <option value="55">고급 (빈칸 55개)</option>
+                        </select>
+                        <button onclick="initSudoku()" class="w-full bg-indigo-500 text-white py-3 rounded-xl font-bold text-xl hover:bg-indigo-600 shadow-md">새 게임 시작!</button>
+                    </div>
+
+                    <div id="sudoku-game-ui" class="hidden flex flex-col items-center w-full">
+                        <p class="text-sm font-bold text-red-500 mb-4 bg-red-50 px-4 py-2 rounded-xl border border-red-100">틀린 횟수: <span id="sudoku-mistakes">0</span> / 3</p>
+                        <div class="bg-black p-1 rounded-lg shadow-md mb-6 inline-block">
+                            <div id="sudoku-board" class="grid grid-cols-9 bg-gray-300 gap-px w-[300px] h-[300px] md:w-[400px] md:h-[400px]">
+                                <!-- JS 렌더링 -->
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-5 gap-2 w-full max-w-[300px] md:max-w-[400px]">
+                            <button onclick="inputSudoku(1)" class="bg-gray-100 hover:bg-indigo-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-gray-200">1</button>
+                            <button onclick="inputSudoku(2)" class="bg-gray-100 hover:bg-indigo-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-gray-200">2</button>
+                            <button onclick="inputSudoku(3)" class="bg-gray-100 hover:bg-indigo-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-gray-200">3</button>
+                            <button onclick="inputSudoku(4)" class="bg-gray-100 hover:bg-indigo-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-gray-200">4</button>
+                            <button onclick="inputSudoku(5)" class="bg-gray-100 hover:bg-indigo-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-gray-200">5</button>
+                            <button onclick="inputSudoku(6)" class="bg-gray-100 hover:bg-indigo-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-gray-200">6</button>
+                            <button onclick="inputSudoku(7)" class="bg-gray-100 hover:bg-indigo-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-gray-200">7</button>
+                            <button onclick="inputSudoku(8)" class="bg-gray-100 hover:bg-indigo-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-gray-200">8</button>
+                            <button onclick="inputSudoku(9)" class="bg-gray-100 hover:bg-indigo-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-gray-200">9</button>
+                            <button onclick="inputSudoku('clear')" class="bg-red-50 text-red-500 hover:bg-red-100 text-xl font-bold py-3 rounded-lg shadow-sm border border-red-200"><i class="fa-solid fa-eraser"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==== 공통/기능 모달 창들 ==== -->
+
+    <!-- [NEW] 타이머 초강렬 알람 오버레이 -->
+    <div id="timer-alarm-overlay" class="fixed inset-0 z-[100] hidden flex flex-col items-center justify-center bg-red-600/95 backdrop-blur-sm transition-opacity duration-300">
+        <div class="text-white text-8xl md:text-9xl mb-8 animate-[jelly_0.5s_infinite]"><i class="fa-solid fa-bell"></i></div>
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-10 text-center drop-shadow-lg">시간이 다 되었어요!</h1>
+        <button onclick="stopTimerAlarm()" class="px-8 py-4 bg-white text-red-600 rounded-full font-black text-2xl hover:scale-110 transition shadow-2xl">알람 끄기</button>
+    </div>
+
+    <!-- 시간 관리 (타이머/스톱워치) 모달 -->
+    <div id="time-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm shadow-2xl flex flex-col border-4 border-orange-200">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex gap-2 bg-gray-100 p-1 rounded-xl">
+                    <button id="tab-btn-timer" onclick="switchTimeTab('timer')" class="px-4 py-2 rounded-lg font-bold bg-white shadow-sm text-orange-500 transition">타이머</button>
+                    <button id="tab-btn-stopwatch" onclick="switchTimeTab('stopwatch')" class="px-4 py-2 rounded-lg font-bold text-gray-500 hover:text-orange-500 transition">스톱워치</button>
+                </div>
+                <button onclick="closeTimeModal()" class="w-8 h-8 bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300 font-bold flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="view-timer" class="flex flex-col items-center py-6">
+                <div class="text-6xl font-bold text-orange-500 mb-6 font-mono tabular-nums tracking-wider" id="timer-display">25:00</div>
+                <div class="flex justify-center items-center gap-2 mb-6">
+                    <input type="number" id="custom-timer-min" class="w-20 px-3 py-2 text-center border-2 border-orange-200 rounded-xl outline-none focus:border-orange-400 font-bold text-gray-700 text-lg" placeholder="분" value="25" min="1">
+                    <span class="font-bold text-orange-500">분</span>
+                    <button onclick="setCustomTimer()" class="bg-orange-100 text-orange-600 px-4 py-2 rounded-xl font-bold hover:bg-orange-200 transition ml-2">적용</button>
+                </div>
+                <div class="flex gap-4">
+                    <button id="timer-toggle-btn" onclick="toggleTimer()" class="w-16 h-16 bg-orange-500 text-white rounded-full text-2xl shadow-lg hover:bg-orange-600 transition flex items-center justify-center"><i class="fa-solid fa-play ml-1"></i></button>
+                    <button onclick="resetTimer()" class="w-16 h-16 bg-gray-200 text-gray-600 rounded-full text-2xl shadow-md hover:bg-gray-300 transition flex items-center justify-center"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+            </div>
+            <div id="view-stopwatch" class="hidden flex flex-col items-center py-6">
+                <div class="text-6xl font-bold text-blue-500 mb-8 font-mono tabular-nums tracking-wider" id="stopwatch-display">00:00.00</div>
+                <div class="flex gap-4">
+                    <button id="stopwatch-toggle-btn" onclick="toggleStopwatch()" class="w-16 h-16 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 transition flex items-center justify-center"><i class="fa-solid fa-play ml-1"></i></button>
+                    <button onclick="resetStopwatch()" class="w-16 h-16 bg-gray-200 text-gray-600 rounded-full text-2xl shadow-md hover:bg-gray-300 transition flex items-center justify-center"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 명언 수정 모달 -->
+    <div id="quote-modal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+            <h2 class="text-2xl mb-6 flex items-center gap-3 font-bold" style="color: var(--theme-text);">
+                <i class="fa-solid fa-quote-left"></i> 오늘의 나만의 문구
+            </h2>
+            <p class="text-gray-500 mb-4 font-bold text-sm">내가 직접 적은 문구는 내일이 될 때까지 고정돼요!</p>
+            <input type="text" id="quote-input" class="w-full bg-gray-100 border-2 border-gray-200 rounded-2xl p-4 mb-6 text-lg focus:outline-none focus:border-pink-300 font-bold" placeholder="오늘의 다짐을 적어보세요.">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeQuoteModal()" class="px-6 py-3 bg-gray-200 rounded-xl font-bold text-gray-600">취소</button>
+                <button onclick="saveQuote()" class="px-6 py-3 text-white rounded-xl font-bold shadow-md" style="background-color: var(--theme-text);">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 우리 반 프로필 설정 모달 -->
+    <div id="profile-modal" class="fixed inset-0 bg-black/40 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+            <h2 class="text-2xl mb-6 flex items-center gap-3 font-bold" style="color: var(--theme-text);">
+                <i class="fa-solid fa-seedling"></i> 우리 반 이름과 로고 설정
+            </h2>
+            <div class="mb-4 text-left">
+                <label class="block text-gray-600 font-bold mb-2 text-sm">우리 반 이름 (예: 햇반이네, 별빛반)</label>
+                <input type="text" id="profile-title-input" class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-3 text-lg focus:outline-none focus:border-pink-300 font-bold" placeholder="햇반이네">
+            </div>
+            <div class="mb-6 text-left">
+                <label class="block text-gray-600 font-bold mb-2 text-sm">대표 아이콘 이모지 (비워두면 기본 그림 유지)</label>
+                <input type="text" id="profile-emoji-input" class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-3 text-lg focus:outline-none focus:border-pink-300 font-bold" placeholder="🍚, 🐥 등">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeProfileModal()" class="px-6 py-3 bg-gray-200 rounded-xl font-bold text-gray-600">취소</button>
+                <button onclick="saveProfile()" class="px-6 py-3 text-white rounded-xl font-bold shadow-md" style="background-color: var(--theme-text);">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 디데이 설정 모달 -->
+    <div id="dday-modal" class="fixed inset-0 bg-black/40 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+            <h2 class="text-2xl mb-6 flex items-center gap-3 font-bold text-blue-500">
+                <i class="fa-solid fa-calendar-day"></i> 디데이 설정
+            </h2>
+            <div class="mb-4 text-left">
+                <label class="block text-gray-600 font-bold mb-2 text-sm">기다리는 날 (예: 여름방학, 수련회)</label>
+                <input type="text" id="dday-name-input" class="w-full bg-gray-100 border-2 border-blue-100 rounded-xl p-3 text-lg focus:outline-none focus:border-blue-300 font-bold" placeholder="여름방학">
+            </div>
+            <div class="mb-6 text-left">
+                <label class="block text-gray-600 font-bold mb-2 text-sm">목표 날짜</label>
+                <input type="date" id="dday-date-input" class="w-full bg-gray-100 border-2 border-blue-100 rounded-xl p-3 text-lg focus:outline-none focus:border-blue-300 font-bold">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeDdayModal()" class="px-6 py-3 bg-gray-200 rounded-xl font-bold text-gray-600">취소</button>
+                <button onclick="saveDday()" class="px-6 py-3 bg-blue-500 text-white rounded-xl font-bold shadow-md">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 일주일 단위 배움 모아보기 -->
+    <div id="collection-modal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-center justify-center p-4 backdrop-blur-md relative">
+        <div class="bg-white rounded-[2rem] p-6 w-full max-w-7xl shadow-2xl flex flex-col h-[95vh] relative overflow-hidden">
+            <div class="flex justify-between items-center mb-4 shrink-0 border-b border-gray-100 pb-4">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-3">
+                    <i class="fa-solid fa-calendar-week text-indigo-500"></i> 배움 모아보기
+                </h2>
+                <button onclick="closeCollectionModal()" class="w-12 h-12 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 font-bold flex items-center justify-center text-xl transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="flex flex-col gap-3 mb-2 shrink-0">
+                <div class="flex gap-2 bg-gray-100 p-1 rounded-xl w-fit">
+                    <button id="col-tab-all" onclick="renderCollectionView('all')" class="px-4 py-2 rounded-lg font-bold bg-white shadow-sm text-indigo-600 transition">전체 보기</button>
+                    <button id="col-tab-day" onclick="renderCollectionView('day')" class="px-4 py-2 rounded-lg font-bold text-gray-500 hover:text-indigo-500 transition">요일별 보기</button>
+                    <button id="col-tab-subject" onclick="renderCollectionView('subject')" class="px-4 py-2 rounded-lg font-bold text-gray-500 hover:text-indigo-500 transition">과목별 보기</button>
+                </div>
+                <div id="collection-sub-tabs" class="flex gap-2 overflow-x-auto pb-2 hidden scrollbar-hide"></div>
+            </div>
+            
+            <div id="collection-week-view" class="flex-1 overflow-y-auto p-2 md:p-4 pb-20"></div>
+            
+            <div class="mt-4 shrink-0 pt-4 border-t border-gray-100">
+                <button id="download-btn" onclick="downloadWeeklyNotebooks()" class="w-full py-4 bg-indigo-500 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-600 transition text-xl flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-download"></i> 이번 주 전체 배움 다운로드
+                </button>
+            </div>
+            
+            <div id="day-undo-bar" class="absolute bottom-28 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-50 transition-all duration-300 translate-y-20 opacity-0 pointer-events-none">
+                <span class="font-bold">해당 요일 삭제 완료!</span>
+                <button onclick="undoClearDay()" class="bg-white text-gray-800 hover:bg-gray-200 px-4 py-1.5 rounded-xl font-bold text-sm transition pointer-events-auto">되돌리기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 개별 배움공책 캔버스 모달 -->
+    <div id="canvas-modal" class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center p-4 md:p-6 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] p-4 md:p-6 w-full max-w-6xl shadow-2xl flex flex-col h-[95vh] md:h-[95vh]">
+            <div class="flex justify-between items-center mb-4 shrink-0 gap-2">
+                <h2 id="canvas-title" class="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-purple-500"></i> <span id="canvas-subject-name" class="text-purple-600">과목명</span> 공책
+                </h2>
+                <button id="mode-toggle-btn" onclick="toggleNotebookMode()" class="bg-indigo-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-2xl font-bold shadow-md hover:bg-indigo-600 transition flex items-center gap-2 shrink-0">
+                    <i class="fa-solid fa-palette"></i> <span class="hidden md:inline">그림 모드로 전환</span>
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="closeCanvasModal(false)" class="w-10 h-10 md:w-12 md:h-12 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 font-bold flex items-center justify-center transition shrink-0"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-hidden relative">
+                <!-- 텍스트 영역 -->
+                <div id="area-text" class="w-full h-full flex flex-col bg-yellow-50 border-4 border-yellow-200 rounded-2xl p-4 shadow-inner">
+                    <div class="flex items-center justify-between mb-3 pb-3 border-b-2 border-yellow-200 shrink-0 gap-2">
+                        <span class="font-bold text-yellow-700 text-lg shrink-0"><i class="fa-solid fa-keyboard"></i> 핵심 텍스트 기록</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-bold text-yellow-600 hidden md:inline">글자 크기</span>
+                            <input type="range" id="text-size-slider" min="14" max="48" value="20" class="w-24 md:w-32 accent-yellow-500" onchange="document.getElementById('notebook-text').style.fontSize = this.value + 'px'">
+                        </div>
+                    </div>
+                    <textarea id="notebook-text" class="flex-1 bg-transparent lined-bg resize-none outline-none font-bold text-gray-800 leading-relaxed" style="font-size: 20px; font-family: inherit;" placeholder="여기에 오늘의 핵심 수업 내용을 정리해 봐요!"></textarea>
+                </div>
+
+                <!-- 그림 영역 -->
+                <div id="area-draw" class="w-full h-full flex flex-col hidden">
+                    <div class="flex items-center justify-between gap-3 mb-3 bg-purple-50 p-2 md:p-3 rounded-2xl shrink-0 shadow-sm border border-purple-100">
+                        <div class="flex gap-2 items-center overflow-x-auto flex-1">
+                            <button onclick="setPenStyle('#000000', 'pen', this)" class="w-8 h-8 rounded-full bg-black border-4 border-transparent focus:border-purple-400 pen-tool-btn active-tool shadow-sm shrink-0"></button>
+                            <button onclick="setPenStyle('#EF4444', 'pen', this)" class="w-8 h-8 rounded-full bg-red-500 border-4 border-transparent focus:border-purple-400 pen-tool-btn shadow-sm shrink-0"></button>
+                            <button onclick="setPenStyle('#3B82F6', 'pen', this)" class="w-8 h-8 rounded-full bg-blue-500 border-4 border-transparent focus:border-purple-400 pen-tool-btn shadow-sm shrink-0"></button>
+                            
+                            <div id="custom-color-wrapper" class="flex items-center bg-white rounded-full border-4 border-transparent pen-tool-btn shadow-sm transition-all pr-1 shrink-0">
+                                <input type="color" id="notebook-custom-color" value="#10B981" class="w-8 h-8 cursor-pointer shrink-0 border-0 bg-transparent p-0">
+                                <button onclick="applyCustomColor()" class="text-sm font-bold text-gray-600 hover:text-purple-600 px-2 py-1 rounded-full hover:bg-purple-50 transition">적용</button>
+                            </div>
+
+                            <div class="w-px h-6 bg-purple-200 mx-1 md:mx-2 shrink-0"></div>
+
+                            <button onclick="setPenStyle('transparent', 'eraser', this)" class="w-8 h-8 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center pen-tool-btn shadow-sm shrink-0" title="부분 지우개">
+                                <i class="fa-solid fa-eraser text-gray-400 text-xs"></i>
+                            </button>
+                            
+                            <div class="w-px h-6 bg-purple-200 mx-1 md:mx-2 shrink-0"></div>
+                            
+                            <button onclick="undoCanvas()" class="px-3 py-1.5 bg-white text-gray-600 rounded-xl hover:bg-gray-100 font-bold text-sm shadow-sm transition shrink-0 border border-gray-200"><i class="fa-solid fa-rotate-left"></i> 선 지우기</button>
+                            <button onclick="clearCanvas()" class="px-3 py-1.5 bg-white text-gray-600 rounded-xl hover:bg-gray-100 font-bold text-sm shadow-sm transition shrink-0 border border-gray-200"><i class="fa-solid fa-trash"></i> 싹 지우기</button>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0 ml-2">
+                            <span class="font-bold text-sm text-purple-700 whitespace-nowrap">굵기:</span>
+                            <input type="range" id="pen-size" min="1" max="15" value="3" class="w-16 md:w-24 accent-purple-500 cursor-pointer">
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 bg-white border-4 border-gray-400 rounded-2xl overflow-hidden relative grid-bg shadow-[inset_0_0_20px_rgba(0,0,0,0.05)] ring-4 ring-gray-100" id="canvas-wrapper">
+                        <canvas id="drawing-board" width="1024" height="768" class="absolute top-0 left-0 w-full h-full bg-transparent touch-none cursor-crosshair object-contain"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="shrink-0 flex gap-3 mt-4">
+                <button onclick="deleteCanvasData()" class="px-4 py-4 md:px-6 bg-red-100 text-red-600 rounded-2xl font-bold hover:bg-red-200 transition whitespace-nowrap flex items-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i> 공책 버리기
+                </button>
+                <button onclick="saveCanvas()" class="flex-1 py-4 bg-purple-500 text-white rounded-2xl font-bold shadow-md hover:bg-purple-600 transition text-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-save"></i> 텍스트와 그림 모두 저장하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 사전 검색 모달 -->
+    <div id="dict-modal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl">
+            <h2 id="dict-title" class="text-2xl mb-6 flex items-center gap-3 font-bold text-gray-700"><i class="fa-solid fa-book"></i> 사전 검색</h2>
+            <input type="text" id="dict-input" class="w-full bg-gray-100 border-2 border-gray-200 rounded-2xl p-4 mb-6 text-lg focus:outline-none font-bold" placeholder="검색할 단어를 입력하세요.">
+            <div class="flex justify-end gap-3">
+                <button onclick="document.getElementById('dict-modal').classList.add('hidden')" class="px-6 py-3 bg-gray-200 rounded-xl font-bold">취소</button>
+                <button onclick="searchDict()" class="px-6 py-3 bg-pink-500 text-white rounded-xl font-bold">찾기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림창 / 확인창 -->
+    <div id="custom-alert" class="fixed inset-0 bg-black/50 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-[350px] text-center shadow-2xl" id="custom-alert-box">
+            <div class="text-5xl mb-4" style="color: var(--theme-text);"><i class="fa-solid fa-bell"></i></div>
+            <p id="alert-message" class="text-gray-800 mb-8 text-lg font-bold whitespace-pre-wrap"></p>
+            <button onclick="closeAlert()" class="w-full py-4 text-white rounded-2xl font-bold text-lg hover:opacity-90 transition" style="background-color: var(--theme-text);">확인</button>
+        </div>
+    </div>
+    <div id="custom-confirm" class="fixed inset-0 bg-black/50 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-[350px] text-center shadow-2xl">
+            <p id="confirm-message" class="text-gray-800 mb-8 text-lg font-bold whitespace-pre-wrap"></p>
+            <div class="flex gap-3 justify-center">
+                <button onclick="closeConfirm(false)" class="flex-1 py-4 bg-gray-200 rounded-2xl font-bold text-gray-700 hover:bg-gray-300">취소</button>
+                <button onclick="closeConfirm(true)" class="flex-1 py-4 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 계산기 모달 -->
+    <div id="calc-modal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-gray-100 rounded-[2rem] p-6 w-full max-w-[350px] shadow-2xl border-4 border-gray-200">
+            <div class="flex justify-between items-center mb-4 px-2">
+                <span class="font-bold text-gray-600 text-xl"><i class="fa-solid fa-calculator"></i> 햇반 계산기</span>
+                <button onclick="document.getElementById('calc-modal').classList.add('hidden')" class="text-gray-400 hover:text-red-500 bg-white w-8 h-8 rounded-full flex items-center justify-center shadow"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="bg-white rounded-2xl p-4 mb-4 text-right text-4xl h-20 flex items-center justify-end overflow-hidden shadow-inner font-mono tracking-wider" id="calc-display">0</div>
+            <div class="grid grid-cols-4 gap-3">
+                <button class="bg-gray-300 rounded-xl py-4 shadow-sm font-bold text-red-600 text-xl" onclick="calcAction('C')">C</button>
+                <button class="bg-gray-300 rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('DEL')">←</button>
+                <button class="bg-blue-200 rounded-xl py-4 shadow-sm font-bold text-blue-700 text-xl" onclick="calcAction('%')">%</button>
+                <button class="bg-blue-200 rounded-xl py-4 shadow-sm font-bold text-blue-700 text-xl" onclick="calcAction('/')">÷</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('7')">7</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('8')">8</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('9')">9</button>
+                <button class="bg-blue-200 rounded-xl py-4 shadow-sm font-bold text-blue-700 text-xl" onclick="calcAction('*')">×</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('4')">4</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('5')">5</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('6')">6</button>
+                <button class="bg-blue-200 rounded-xl py-4 shadow-sm font-bold text-blue-700 text-xl" onclick="calcAction('-')">-</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('1')">1</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('2')">2</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('3')">3</button>
+                <button class="bg-blue-200 rounded-xl py-4 shadow-sm font-bold text-blue-700 text-xl" onclick="calcAction('+')">+</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl col-span-2" onclick="calcAction('0')">0</button>
+                <button class="bg-white rounded-xl py-4 shadow-sm font-bold text-xl" onclick="calcAction('.')">.</button>
+                <button class="text-white rounded-xl py-4 shadow-md font-bold text-xl" style="background-color: var(--theme-text);" onclick="calcAction('=')">=</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메모 작성 및 수정 모달 -->
+    <div id="memo-modal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl">
+            <h2 class="text-2xl mb-6 flex items-center gap-3 font-bold" style="color: var(--theme-text);"><i class="fa-solid fa-pen"></i> 메모 작성 및 수정</h2>
+            <textarea id="memo-input" rows="4" class="w-full bg-gray-100 border-2 border-gray-200 rounded-2xl p-4 mb-6 text-lg resize-none focus:outline-none font-bold" placeholder="오늘 잊지 말아야 할 것은?"></textarea>
+            <div class="flex gap-4 mb-8 justify-center">
+                <div onclick="selectMemoColor('bg-pastel-pink')" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-pink border-4 border-transparent cursor-pointer"></div>
+                <div onclick="selectMemoColor('bg-pastel-blue')" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-blue border-4 border-transparent cursor-pointer"></div>
+                <div onclick="selectMemoColor('bg-pastel-green')" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-green border-4 border-transparent cursor-pointer"></div>
+                <div onclick="selectMemoColor('bg-pastel-yellow')" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-yellow border-4 border-transparent cursor-pointer"></div>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeMemoModal()" class="px-6 py-3 bg-gray-200 rounded-xl font-bold text-gray-700">취소</button>
+                <button onclick="saveMemo()" class="px-6 py-3 text-white rounded-xl font-bold shadow-md" style="background-color: var(--theme-text);">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 0. 전역 상태 및 공통 유틸리티
+        // ==========================================
+        let attitudeData = { date: '', attitude: 0, listen: 0, outcome: 0 };
+        let memos = [];
+        let memoSortable = null;
+        let notebookData = {}; 
+        let editingMemoId = null; 
+        let customQuoteData = { date: '', text: '' }; 
+        let backupDayData = null; 
+        let backupDayName = '';
+        
+        let customProfile = { title: '햇반이네', emoji: '' };
+        let customDday = { name: '여름방학', date: '' };
+        
+        let currentCollectionMode = 'all';
+        let currentCollectionSub = '';
+        
+        let gameRecords = {
+            match: { normal: [], moves: [], time: [] },
+            math: { mul: [], div: [] },
+            tensec: []
+        }; 
+        let activeIntervals = []; 
+
+        window.alertResolve = null;
+        window.confirmResolve = null;
+
+        function safeSetInterval(fn, time) {
+            const id = setInterval(fn, time);
+            activeIntervals.push(id);
+            return id;
+        }
+
+        function clearAllIntervals() {
+            activeIntervals.forEach(id => clearInterval(id));
+            activeIntervals = [];
+        }
+
+        function saveRecord(game, mode, score, labelText, isLowerBetter = true) {
+            if(!gameRecords[game]) gameRecords[game] = {};
+            
+            let targetArray = mode ? gameRecords[game][mode] : gameRecords[game];
+            if(!targetArray) targetArray = [];
+
+            const now = new Date();
+            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            
+            targetArray.push({ score: score, label: labelText, date: dateStr });
+            targetArray.sort((a,b) => isLowerBetter ? a.score - b.score : b.score - a.score);
+            if(targetArray.length > 3) targetArray.pop();
+
+            if(mode) gameRecords[game][mode] = targetArray;
+            else gameRecords[game] = targetArray;
+            
+            localStorage.setItem('hatban_game_records', JSON.stringify(gameRecords));
+        }
+
+        function renderRecords(containerId, dataArray, unit) {
+            const container = document.getElementById(containerId);
+            if(!container) return;
+            container.innerHTML = '';
+            if(!dataArray || dataArray.length === 0) {
+                container.innerHTML = '<div class="text-center py-2 text-gray-400">아직 기록이 없어요!</div>';
+                return;
+            }
+            let html = '<ul class="record-list">';
+            dataArray.forEach((r, idx) => {
+                const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
+                html += `<li><span>${medal} ${r.label}</span><span class="text-gray-400 text-xs">${r.date}</span></li>`;
+            });
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+
+        // ==========================================
+        // 1. 방학 D-Day 로직
+        // ==========================================
+        window.updateDday = function() {
+            const savedDday = localStorage.getItem('hatban_dday');
+            if (savedDday) customDday = JSON.parse(savedDday);
+            else {
+                const now = new Date();
+                let year = now.getFullYear();
+                if (now.getMonth() > 6 || (now.getMonth() === 6 && now.getDate() > 22)) year++;
+                customDday = { name: '여름방학', date: `${year}-07-22` };
+            }
+
+            document.getElementById('d-day-name').innerText = customDday.name;
+            
+            const now = new Date();
+            now.setHours(0,0,0,0);
+            const targetDate = new Date(customDday.date);
+            targetDate.setHours(0,0,0,0);
+            
+            const diffTime = targetDate - now;
+            let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (isNaN(diffDays) || diffDays < 0) diffDays = 0;
+
+            const ddayEl = document.getElementById('d-day-count');
+            if(ddayEl) ddayEl.innerText = diffDays;
+        }
+
+        window.openDdayModal = function() {
+            document.getElementById('dday-name-input').value = customDday.name;
+            document.getElementById('dday-date-input').value = customDday.date;
+            document.getElementById('dday-modal').classList.remove('hidden');
+        }
+        window.closeDdayModal = function() { document.getElementById('dday-modal').classList.add('hidden'); }
+        window.saveDday = function() {
+            const name = document.getElementById('dday-name-input').value.trim() || '여름방학';
+            const date = document.getElementById('dday-date-input').value;
+            if(!date) return window.customAlert('목표 날짜를 선택해주세요!');
+            
+            customDday = { name, date };
+            localStorage.setItem('hatban_dday', JSON.stringify(customDday));
+            window.updateDday();
+            window.closeDdayModal();
+        }
+
+        // ==========================================
+        // 2. 앱 꾸미기 (테마 / 폰트 커스텀)
+        // ==========================================
+        window.applyThemeColor = function() {
+            const hexColor = document.getElementById('theme-color-picker').value;
+            changeTheme(hexColor);
+            customAlert("테마 색상이 예쁘게 적용되었습니다! 🎨");
+        }
+
+        window.changeTheme = function(hexColor) {
+            document.documentElement.style.setProperty('--theme-text', hexColor);
+            document.documentElement.style.setProperty('--theme-bg', hexColor + '1A'); 
+            document.documentElement.style.setProperty('--theme-nav-active', hexColor + '0D'); 
+            localStorage.setItem('hatban_theme_color', hexColor);
+            document.getElementById('theme-color-picker').value = hexColor;
+        }
+
+        window.changeFont = function(fontFamily) {
+            document.body.style.fontFamily = fontFamily;
+            localStorage.setItem('hatban_font', fontFamily);
+        }
+
+        // ==========================================
+        // 3. 데이터 초기화 및 렌더링
+        // ==========================================
+        window.initData = function() {
+            const savedColor = localStorage.getItem('hatban_theme_color') || '#ec4899';
+            window.changeTheme(savedColor);
+            const savedFont = localStorage.getItem('hatban_font') || "'Jua', sans-serif";
+            document.getElementById('font-select').value = savedFont;
+            window.changeFont(savedFont);
+
+            const savedProfile = localStorage.getItem('hatban_profile');
+            if(savedProfile) customProfile = JSON.parse(savedProfile);
+            window.applyProfile();
+
+            window.updateDday();
+            
+            const savedRecords = localStorage.getItem('hatban_game_records');
+            if(savedRecords) {
+                const parsed = JSON.parse(savedRecords);
+                if(parsed.matchMoves || parsed.matchTime) {
+                    gameRecords = { match: { normal: [], moves: [], time: [] }, math: { mul: [], div: [] }, tensec: [] };
+                } else {
+                    delete parsed.chosung;
+                    gameRecords = parsed;
+                }
+            }
+
+            const savedQuote = localStorage.getItem('hatban_quote');
+            if(savedQuote) customQuoteData = JSON.parse(savedQuote);
+            setDailyQuote();
+
+            const todayStr = new Date().toDateString();
+            const savedRatings = localStorage.getItem('hatban_ratings');
+            if(savedRatings) {
+                const parsed = JSON.parse(savedRatings);
+                if(parsed.date === todayStr) attitudeData = parsed;
+                else {
+                    attitudeData = { date: todayStr, attitude: 0, listen: 0, outcome: 0 };
+                    localStorage.setItem('hatban_ratings', JSON.stringify(attitudeData));
+                }
+            } else attitudeData = { date: todayStr, attitude: 0, listen: 0, outcome: 0 };
+            updateStarUI();
+
+            const savedMemos = localStorage.getItem('hatban_memos');
+            if(savedMemos) memos = JSON.parse(savedMemos);
+            renderAllMemos();
+            initSortable();
+
+            const savedNotebooks = localStorage.getItem('hatban_notebooks');
+            if(savedNotebooks) notebookData = JSON.parse(savedNotebooks);
+            
+            renderTimetable();
+            setInterval(renderTimetable, 60000); 
+        }
+
+        // ==========================================
+        // 4. 명언 및 프로필 설정
+        // ==========================================
+        const quotes = [
+            "포기하지 마! 넌 할 수 있어! 얍!", "오늘도 귀여운 하루 보내자~", "실수는 누구나 하는 거야, 툭툭 털고 일어나!",
+            "어제보다 1mm 더 자란 널 응원해!", "배움에는 끝이 없대! 나도 매일 배워~", "네가 최고야! 엄지 척! 👍"
+        ];
+        
+        function setDailyQuote() {
+            const todayStr = new Date().toDateString();
+            if (customQuoteData.date === todayStr && customQuoteData.text) {
+                document.getElementById('daily-quote').innerText = customQuoteData.text;
+                return;
+            }
+            let hash = 0;
+            for(let i=0; i<todayStr.length; i++) hash += todayStr.charCodeAt(i);
+            document.getElementById('daily-quote').innerText = quotes[hash % quotes.length];
+        }
+
+        window.editQuote = function() {
+            document.getElementById('quote-input').value = document.getElementById('daily-quote').innerText;
+            document.getElementById('quote-modal').classList.remove('hidden');
+        }
+        window.closeQuoteModal = function() { document.getElementById('quote-modal').classList.add('hidden'); }
+        window.saveQuote = function() {
+            const text = document.getElementById('quote-input').value.trim();
+            if(text) {
+                customQuoteData = { date: new Date().toDateString(), text: text };
+                localStorage.setItem('hatban_quote', JSON.stringify(customQuoteData));
+            }
+            window.setDailyQuote(); window.closeQuoteModal();
+        }
+
+        window.applyProfile = function() {
+            document.getElementById('app-title-text').innerText = customProfile.title || '햇반이네';
+            
+            const svgLogo = document.getElementById('app-logo-svg');
+            const emojiLogo = document.getElementById('app-logo-emoji');
+            
+            if (customProfile.emoji) {
+                svgLogo.classList.add('hidden');
+                emojiLogo.classList.remove('hidden');
+                emojiLogo.innerText = customProfile.emoji;
+            } else {
+                svgLogo.classList.remove('hidden');
+                emojiLogo.classList.add('hidden');
+            }
+        }
+
+        window.openProfileModal = function() {
+            document.getElementById('profile-title-input').value = customProfile.title;
+            document.getElementById('profile-emoji-input').value = customProfile.emoji;
+            document.getElementById('profile-modal').classList.remove('hidden');
+        }
+        window.closeProfileModal = function() { document.getElementById('profile-modal').classList.add('hidden'); }
+        window.saveProfile = function() {
+            const title = document.getElementById('profile-title-input').value.trim() || '햇반이네';
+            const emoji = document.getElementById('profile-emoji-input').value.trim();
+            customProfile = { title, emoji };
+            localStorage.setItem('hatban_profile', JSON.stringify(customProfile));
+            window.applyProfile();
+            window.closeProfileModal();
+        }
+
+        // ==========================================
+        // 5. 탭 및 알림창 
+        // ==========================================
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if(btn.dataset.target === tabId) {
+                    btn.classList.add('active-tab'); btn.classList.remove('text-gray-400');
+                } else {
+                    btn.classList.remove('active-tab'); btn.classList.add('text-gray-400');
+                }
+            });
+            if(tabId === 'tab-notebook') renderTimetable();
+        };
+
+        window.customAlert = function(msg) {
+            const modal = document.getElementById('custom-alert');
+            document.getElementById('alert-message').innerText = msg;
+            modal.classList.remove('hidden');
+            return new Promise(resolve => window.alertResolve = resolve);
+        }
+        window.closeAlert = function() {
+            document.getElementById('custom-alert').classList.add('hidden');
+            if(window.alertResolve) window.alertResolve();
+        }
+        window.customConfirm = function(msg) {
+            document.getElementById('confirm-message').innerText = msg;
+            document.getElementById('custom-confirm').classList.remove('hidden');
+            return new Promise(resolve => window.confirmResolve = resolve);
+        }
+        window.closeConfirm = function(result) {
+            document.getElementById('custom-confirm').classList.add('hidden');
+            if(window.confirmResolve) window.confirmResolve(result);
+        }
+
+        // ==========================================
+        // 6. 태도 평가 & 메모
+        // ==========================================
+        window.toggleStar = function(category, starIndex) {
+            const todayStr = new Date().toDateString();
+            if (attitudeData.date !== todayStr) attitudeData = { date: todayStr, attitude: 0, listen: 0, outcome: 0 };
+            let current = attitudeData[category];
+            if (current === starIndex - 0.5) attitudeData[category] = starIndex;      
+            else if (current === starIndex) attitudeData[category] = starIndex - 0.5; 
+            else attitudeData[category] = starIndex - 0.5; 
+            
+            updateStarUI();
+            localStorage.setItem('hatban_ratings', JSON.stringify(attitudeData));
+        }
+
+        function updateStarUI() {
+            ['attitude', 'listen', 'outcome'].forEach(category => {
+                const val = attitudeData[category] || 0;
+                const container = document.getElementById(`stars-${category}`);
+                if(!container) return;
+                const stars = container.querySelectorAll('i');
+                stars.forEach((star, index) => {
+                    const starNum = index + 1;
+                    star.className = 'text-yellow-400 cursor-pointer transition-all hover:scale-110';
+                    if (val >= starNum) star.classList.add('fa-solid', 'fa-star'); 
+                    else if (val >= starNum - 0.5) star.classList.add('fa-solid', 'fa-star-half-stroke'); 
+                    else star.classList.add('fa-regular', 'fa-star'); 
+                });
+            });
+        }
+
+        function renderAllMemos() {
+            const container = document.getElementById('memo-container');
+            container.innerHTML = ''; 
+            if(memos.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center text-base text-gray-400 py-10 font-bold">작성된 메모가 없어요! + 버튼을 누르세요.</div>`;
+                return;
+            }
+            memos.forEach(memo => {
+                const div = document.createElement('div');
+                div.className = `${memo.color || 'bg-pastel-yellow'} p-4 md:p-5 rounded-2xl shadow-sm relative group transform transition duration-300 hover:-translate-y-1 flex flex-col border border-gray-100 cursor-pointer`;
+                div.onclick = () => openMemoModal(memo.id);
+                div.innerHTML = `
+                    <div class="drag-handle absolute top-0 left-0 w-full h-8 flex items-center justify-center cursor-grab active:cursor-grabbing text-black/10 hover:text-black/30 z-10" onclick="event.stopPropagation();"><i class="fa-solid fa-grip-lines"></i></div>
+                    <button onclick="deleteMemo('${memo.id}', event)" class="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 text-gray-400 hover:text-red-500 w-8 h-8 bg-white/50 rounded-full flex items-center justify-center z-20 transition"><i class="fa-solid fa-xmark"></i></button>
+                    <p class="text-base text-gray-800 whitespace-pre-wrap break-words pt-3 flex-1 font-bold">${memo.text}</p>
+                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 w-10 h-3 bg-white/40 rounded-full"></div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function initSortable() {
+            const container = document.getElementById('memo-container');
+            if(memoSortable) memoSortable.destroy();
+            memoSortable = new Sortable(container, {
+                animation: 250, handle: '.drag-handle', ghostClass: 'sortable-ghost',
+                onEnd: function (evt) {
+                    if (evt.oldIndex === evt.newIndex) return;
+                    const movedItem = memos.splice(evt.oldIndex, 1)[0];
+                    memos.splice(evt.newIndex, 0, movedItem);
+                    localStorage.setItem('hatban_memos', JSON.stringify(memos));
+                }
+            });
+        }
+
+        window.selectedMemoColor = 'bg-pastel-yellow';
+        window.openMemoModal = function(id = null) {
+            editingMemoId = id;
+            if (id) {
+                const memo = memos.find(m => m.id === id);
+                if(memo) { document.getElementById('memo-input').value = memo.text; window.selectMemoColor(memo.color); }
+            } else {
+                document.getElementById('memo-input').value = ''; window.selectMemoColor('bg-pastel-yellow');
+            }
+            document.getElementById('memo-modal').classList.remove('hidden');
+        }
+        window.closeMemoModal = function() { document.getElementById('memo-modal').classList.add('hidden'); editingMemoId = null; }
+        window.selectMemoColor = function(color) {
+            window.selectedMemoColor = color;
+            document.querySelectorAll('.memo-color-btn').forEach(btn => btn.classList.remove('border-gray-500'));
+            event.target.classList.add('border-gray-500');
+        }
+        window.saveMemo = function() {
+            const text = document.getElementById('memo-input').value.trim();
+            if(!text) return customAlert('내용을 입력해주세요!');
+            if (editingMemoId) {
+                const idx = memos.findIndex(m => m.id === editingMemoId);
+                if (idx !== -1) { memos[idx].text = text; memos[idx].color = window.selectedMemoColor; }
+            } else memos.push({ id: Date.now().toString(), text: text, color: window.selectedMemoColor });
+            localStorage.setItem('hatban_memos', JSON.stringify(memos));
+            renderAllMemos(); initSortable(); closeMemoModal();
+        }
+        window.deleteMemo = async function(id, event) {
+            if(event) event.stopPropagation(); 
+            const confirmed = await customConfirm("이 메모를 지울까요?");
+            if(!confirmed) return;
+            memos = memos.filter(m => m.id !== id);
+            localStorage.setItem('hatban_memos', JSON.stringify(memos));
+            renderAllMemos(); initSortable();
+        }
+
+        // ==========================================
+        // 7. 스마트 배움공책 & 실시간 시간표
+        // ==========================================
+        const timetableSubjects = [
+            ['국어', '국어', '체육', '국어', '음악'],
+            ['영어', '음악', '과학', '국어', '체육'],
+            ['체육', '수학', '수학', '수학', '수학'],
+            ['사회', '영어', '국어', '영어', '과학'],
+            ['사회', '사회', '창체', '미술', '과학'],
+            ['창체', '실과', '-', '미술', '도덕']
+        ];
+        const daysKor = ['월', '화', '수', '목', '금'];
+        const classTimes = ["08:50<br>~ 09:30", "09:40<br>~ 10:20", "10:30<br>~ 11:10", "11:20<br>~ 12:00", "12:10<br>~ 12:50", "13:40<br>~ 14:20"];
+        
+        let currentCellId = null;
+        let isDrawing = false;
+        let currentTool = 'pen'; 
+        let currentPenColor = '#000000';
+        let canvas = null;
+        let ctx = null;
+        let canvasHistory = [];
+        let currentNotebookMode = 'text'; 
+        let currentCanvasImgData = null; 
+
+        function getCurrentTimeInfo() {
+            const now = new Date();
+            const day = now.getDay(); 
+            const hour = now.getHours();
+            const min = now.getMinutes();
+            const timeInMins = hour * 60 + min;
+
+            let period = -1;
+            if (timeInMins >= 8*60+50 && timeInMins <= 9*60+30) period = 0;       
+            else if (timeInMins >= 9*60+40 && timeInMins <= 10*60+20) period = 1; 
+            else if (timeInMins >= 10*60+30 && timeInMins <= 11*60+10) period = 2;
+            else if (timeInMins >= 11*60+20 && timeInMins <= 12*60+00) period = 3;
+            else if (timeInMins >= 12*60+10 && timeInMins <= 12*60+50) period = 4;
+            else if (timeInMins >= 13*60+40 && timeInMins <= 14*60+20) period = 5;
+
+            return { currentDay: day, currentPeriod: period };
+        }
+
+        function renderTimetable() {
+            const container = document.getElementById('timetable-container');
+            const { currentDay, currentPeriod } = getCurrentTimeInfo();
+
+            let html = `<div class="bg-gray-700 text-white py-3 rounded-lg font-bold shadow-md flex items-center justify-center">시간</div>`;
+            for (let i = 0; i < 5; i++) {
+                if (currentDay === i + 1) html += `<div class="bg-red-500 text-white py-3 rounded-lg font-bold shadow-lg ring-2 ring-red-300 transform scale-105 transition-transform z-10 flex items-center justify-center">오늘 (${daysKor[i]})</div>`;
+                else html += `<div class="bg-gray-700 text-white py-3 rounded-lg font-bold shadow-md flex items-center justify-center">${daysKor[i]}</div>`;
+            }
+            container.innerHTML = html;
+
+            for(let period = 0; period < 6; period++) {
+                const pCell = document.createElement('div');
+                pCell.className = 'bg-white flex flex-col items-center justify-center py-2 rounded-xl border border-gray-200 shadow-sm leading-tight';
+                pCell.innerHTML = `<span class="font-bold text-gray-700">${period + 1}교시</span><span class="text-xs text-gray-400 mt-1 font-bold">${classTimes[period]}</span>`;
+                container.appendChild(pCell);
+
+                for(let dayIdx = 0; dayIdx < 5; dayIdx++) {
+                    const subject = timetableSubjects[period][dayIdx];
+                    const cellId = `${daysKor[dayIdx]}요일 ${period+1}교시 - ${subject}`;
+                    const hasData = !!notebookData[cellId];
+                    const isNow = (currentDay === dayIdx + 1 && currentPeriod === period);
+                    
+                    const cell = document.createElement('div');
+                    cell.className = `tt-cell bg-white border border-gray-200 rounded-xl py-4 flex items-center justify-center cursor-pointer shadow-sm ${hasData ? 'bg-purple-50 border-purple-200' : 'hover:bg-gray-50'}`;
+                    if(isNow) cell.classList.add('current-period-highlight'); 
+                    
+                    let badgeHtml = hasData ? `<div class="tt-badge w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center text-sm shadow-md border-2 border-white"><i class="fa-solid fa-check"></i></div>` : '';
+                    cell.innerHTML = `${badgeHtml}<span class="font-bold text-gray-700 text-3xl md:text-4xl">${subject}</span>`;
+                    
+                    if(subject !== '-') cell.onclick = () => openCanvasModal(cellId, subject);
+                    else { cell.className = 'bg-gray-100 rounded-xl flex items-center justify-center opacity-50'; cell.style.cursor = 'default'; }
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function initCanvas() {
+            if (!canvas) {
+                canvas = document.getElementById('drawing-board');
+                ctx = canvas.getContext('2d');
+                canvas.addEventListener('mousedown', startDrawing);
+                canvas.addEventListener('mousemove', draw);
+                canvas.addEventListener('mouseup', stopDrawing);
+                canvas.addEventListener('mouseout', stopDrawing);
+                canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, {passive: false});
+                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, {passive: false});
+                canvas.addEventListener('touchend', stopDrawing);
+            }
+        }
+
+        window.toggleNotebookMode = function() {
+            const areaText = document.getElementById('area-text');
+            const areaDraw = document.getElementById('area-draw');
+            const btn = document.getElementById('mode-toggle-btn');
+
+            if(currentNotebookMode === 'text') {
+                currentNotebookMode = 'draw';
+                areaText.classList.add('hidden'); areaText.classList.remove('flex');
+                areaDraw.classList.remove('hidden'); areaDraw.classList.add('flex');
+                
+                btn.innerHTML = '<i class="fa-solid fa-keyboard"></i> <span class="hidden md:inline">텍스트 모드로 전환</span>';
+                btn.className = "bg-yellow-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-2xl font-bold shadow-md hover:bg-yellow-600 transition flex items-center gap-2 shrink-0";
+                
+                setTimeout(() => {
+                    const wrapper = document.getElementById('canvas-wrapper');
+                    canvas.width = wrapper.clientWidth;
+                    canvas.height = wrapper.clientHeight;
+                    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                    redrawCanvasFromData();
+                }, 50);
+            } else {
+                currentCanvasImgData = canvas.toDataURL('image/png');
+                currentNotebookMode = 'text';
+                areaDraw.classList.add('hidden'); areaDraw.classList.remove('flex');
+                areaText.classList.remove('hidden'); areaText.classList.add('flex');
+                
+                btn.innerHTML = '<i class="fa-solid fa-palette"></i> <span class="hidden md:inline">그림 모드로 전환</span>';
+                btn.className = "bg-indigo-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-2xl font-bold shadow-md hover:bg-indigo-600 transition flex items-center gap-2 shrink-0";
+            }
+        }
+
+        function redrawCanvasFromData() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (currentCanvasImgData) {
+                const img = new Image();
+                img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); };
+                img.src = currentCanvasImgData;
+            }
+        }
+
+        function saveCanvasState() {
+            if(currentNotebookMode === 'draw') {
+                canvasHistory.push(canvas.toDataURL());
+                if(canvasHistory.length > 20) canvasHistory.shift(); 
+            }
+        }
+
+        window.undoCanvas = function() {
+            if (canvasHistory.length > 0) {
+                canvasHistory.pop(); 
+                ctx.clearRect(0, 0, canvas.width, canvas.height); 
+                if (canvasHistory.length > 0) {
+                    const prev = canvasHistory[canvasHistory.length - 1];
+                    if(prev) {
+                        let img = new Image();
+                        img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); };
+                        img.src = prev;
+                    }
+                }
+            } else customAlert("더 이상 되돌릴 그림이 없어요!");
+        }
+
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX = evt.clientX, clientY = evt.clientY;
+            if (evt.touches && evt.touches.length > 0) { clientX = evt.touches[0].clientX; clientY = evt.touches[0].clientY; }
+            return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
+        }
+
+        function startDrawing(e) {
+            if(e.type === 'mousedown' && e.button !== 0) return;
+            isDrawing = true;
+            const pos = getMousePos(e);
+            ctx.beginPath(); ctx.moveTo(pos.x, pos.y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const pos = getMousePos(e);
+            const baseSize = parseInt(document.getElementById('pen-size').value);
+            
+            if (currentTool === 'eraser') {
+                ctx.globalCompositeOperation = "destination-out"; 
+                ctx.strokeStyle = "rgba(0,0,0,1)";
+                ctx.lineWidth = baseSize * 4; 
+            } else {
+                ctx.globalCompositeOperation = "source-over";
+                ctx.strokeStyle = currentPenColor;
+                ctx.lineWidth = baseSize;
+            }
+            ctx.lineTo(pos.x, pos.y); ctx.stroke();
+        }
+
+        function stopDrawing() {
+            if(isDrawing) { ctx.closePath(); isDrawing = false; saveCanvasState(); }
+        }
+
+        window.setPenStyle = function(color, toolType, btnEl) {
+            currentTool = toolType;
+            if(color && color !== 'transparent') currentPenColor = color;
+            document.querySelectorAll('.pen-tool-btn').forEach(btn => btn.classList.remove('border-purple-400', 'scale-110', 'active-tool'));
+            if(btnEl) btnEl.classList.add('border-purple-400', 'scale-110', 'active-tool');
+            else if (toolType === 'pen' && color) document.getElementById('custom-color-wrapper').classList.add('border-purple-400', 'scale-110', 'active-tool');
+        }
+
+        window.applyCustomColor = function() {
+            const color = document.getElementById('notebook-custom-color').value;
+            setPenStyle(color, 'pen', document.getElementById('custom-color-wrapper'));
+        }
+
+        window.clearCanvas = async function() {
+            const confirmed = await customConfirm("그림 도화지를 깨끗하게 비울까요?\n※ 작성한 텍스트는 지워지지 않아요.");
+            if (confirmed) { 
+                currentCanvasImgData = null; 
+                if(currentNotebookMode === 'draw') {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+                    canvasHistory = [];
+                }
+            }
+        }
+        
+        window.deleteCanvasData = async function() {
+            const confirmed = await customConfirm("이 시간의 공책(텍스트+그림)을 완전히 삭제할까요?");
+            if(confirmed) {
+                delete notebookData[currentCellId];
+                localStorage.setItem('hatban_notebooks', JSON.stringify(notebookData));
+                renderTimetable(); closeCanvasModal();
+            }
+        }
+
+        window.openCanvasModal = function(cellId, subject) {
+            currentCellId = cellId;
+            document.getElementById('canvas-subject-name').innerText = subject;
+            initCanvas(); 
+            canvasHistory = []; 
+            
+            if(ctx && canvas) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            const data = notebookData[cellId];
+            if(data) {
+                if (typeof data === 'string') {
+                    document.getElementById('notebook-text').value = '';
+                    document.getElementById('text-size-slider').value = 20;
+                    document.getElementById('notebook-text').style.fontSize = '20px';
+                    currentCanvasImgData = data;
+                } else {
+                    document.getElementById('notebook-text').value = data.text || '';
+                    const fontSize = data.size || 20;
+                    document.getElementById('text-size-slider').value = fontSize;
+                    document.getElementById('notebook-text').style.fontSize = fontSize + 'px';
+                    currentCanvasImgData = data.img;
+                }
+            } else {
+                document.getElementById('notebook-text').value = '';
+                document.getElementById('text-size-slider').value = 20;
+                document.getElementById('notebook-text').style.fontSize = '20px';
+                currentCanvasImgData = null;
+            }
+
+            currentNotebookMode = 'text'; 
+            toggleNotebookMode(); 
+
+            setPenStyle('#000000', 'pen', document.querySelector('.pen-tool-btn')); 
+            document.getElementById('pen-size').value = 3;
+            
+            document.getElementById('canvas-modal').classList.remove('hidden');
+        }
+
+        window.closeCanvasModal = function() { document.getElementById('canvas-modal').classList.add('hidden'); }
+        
+        window.saveCanvas = function() {
+            if(!currentCellId) return;
+            if(currentNotebookMode === 'draw') currentCanvasImgData = canvas.toDataURL('image/png');
+
+            notebookData[currentCellId] = {
+                img: currentCanvasImgData,
+                text: document.getElementById('notebook-text').value,
+                size: document.getElementById('text-size-slider').value
+            };
+            localStorage.setItem('hatban_notebooks', JSON.stringify(notebookData));
+            renderTimetable(); closeCanvasModal();
+        }
+
+        // ==========================================
+        // 8. 주간 모아보기 및 필터링/다운로드
+        // ==========================================
+        window.openCollectionModal = function() {
+            renderCollectionView('all');
+            document.getElementById('collection-modal').classList.remove('hidden');
+        }
+
+        window.renderCollectionView = function(mode, subMode) {
+            currentCollectionMode = mode;
+            
+            ['all', 'day', 'subject'].forEach(m => {
+                const btn = document.getElementById(`col-tab-${m}`);
+                if(m === mode) { btn.classList.add('bg-white', 'shadow-sm', 'text-indigo-600'); btn.classList.remove('text-gray-500', 'hover:text-indigo-500'); }
+                else { btn.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600'); btn.classList.add('text-gray-500', 'hover:text-indigo-500'); }
+            });
+
+            const subTabsContainer = document.getElementById('collection-sub-tabs');
+            let keys = Object.keys(notebookData);
+
+            if (mode === 'all') {
+                subTabsContainer.innerHTML = '';
+                subTabsContainer.classList.add('hidden');
+                renderCollectionList(keys, '전체', 'all');
+            } else if (mode === 'day') {
+                subTabsContainer.classList.remove('hidden');
+                if(!subMode) subMode = '월';
+                currentCollectionSub = subMode;
+                
+                subTabsContainer.innerHTML = daysKor.map(d => 
+                    `<button onclick="renderCollectionView('day', '${d}')" class="px-4 py-2 rounded-xl font-bold transition whitespace-nowrap ${subMode === d ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-300' : 'bg-white text-gray-600 border-2 border-gray-200 hover:bg-gray-50'}">${d}요일</button>`
+                ).join('');
+                
+                let filteredKeys = keys.filter(k => k.startsWith(`${subMode}요일`));
+                renderCollectionList(filteredKeys, `${subMode}요일`, 'day', subMode);
+                
+            } else if (mode === 'subject') {
+                subTabsContainer.classList.remove('hidden');
+                let subjects = [...new Set(keys.map(k => k.split(' - ')[1]))].filter(s => s);
+                if(subjects.length === 0) {
+                    subTabsContainer.innerHTML = '';
+                    renderCollectionList([], '', 'subject');
+                    return;
+                }
+                if(!subMode || !subjects.includes(subMode)) subMode = subjects[0];
+                currentCollectionSub = subMode;
+                
+                subTabsContainer.innerHTML = subjects.map(s => 
+                    `<button onclick="renderCollectionView('subject', '${s}')" class="px-4 py-2 rounded-xl font-bold transition whitespace-nowrap ${subMode === s ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-300' : 'bg-white text-gray-600 border-2 border-gray-200 hover:bg-gray-50'}">${s}</button>`
+                ).join('');
+                
+                let filteredKeys = keys.filter(k => k.endsWith(` - ${subMode}`));
+                renderCollectionList(filteredKeys, subMode, 'subject');
+            }
+        }
+
+        window.renderCollectionList = function(targetKeys, title, mode, subMode) {
+            const weekView = document.getElementById('collection-week-view');
+            weekView.innerHTML = '';
+            const dlBtn = document.getElementById('download-btn');
+            
+            if(targetKeys.length === 0) {
+                weekView.innerHTML = `<div class="flex h-full items-center justify-center text-gray-400 font-bold text-xl">저장된 배움공책이 없어요!</div>`;
+                dlBtn.disabled = true;
+                dlBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                dlBtn.disabled = false;
+                dlBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                if (mode === 'all') {
+                    dlBtn.innerHTML = `<i class="fa-solid fa-download"></i> 이번 주 전체 배움 다운로드`;
+                    daysKor.forEach(day => {
+                        const dayKeys = targetKeys.filter(k => k.startsWith(`${day}요일`));
+                        if (dayKeys.length > 0) {
+                            dayKeys.sort((a, b) => parseInt(a.match(/\d/)[0]) - parseInt(b.match(/\d/)[0]));
+                            weekView.innerHTML += buildSectionHtml(dayKeys, `${day}요일`, true, day);
+                        }
+                    });
+                } else if (mode === 'day') {
+                    dlBtn.innerHTML = `<i class="fa-solid fa-download"></i> ${title} 배움 다운로드`;
+                    targetKeys.sort((a, b) => parseInt(a.match(/\d/)[0]) - parseInt(b.match(/\d/)[0]));
+                    weekView.innerHTML = buildSectionHtml(targetKeys, title, true, subMode);
+                } else if (mode === 'subject') {
+                    dlBtn.innerHTML = `<i class="fa-solid fa-download"></i> ${title} 배움 다운로드`;
+                    targetKeys.sort((a, b) => {
+                        let dayA = daysKor.indexOf(a[0]);
+                        let dayB = daysKor.indexOf(b[0]);
+                        if (dayA !== dayB) return dayA - dayB;
+                        return parseInt(a.match(/\d/)[0]) - parseInt(b.match(/\d/)[0]);
+                    });
+                    weekView.innerHTML = buildSectionHtml(targetKeys, title, false);
+                }
+            }
+        }
+
+        function buildSectionHtml(keys, title, showDelete, deleteTarget) {
+            let html = `
+                <div class="mb-10 relative">
+                    <div class="flex justify-between items-center mb-6 border-b-4 border-indigo-200 pb-2">
+                        <h3 class="text-2xl md:text-3xl font-bold text-gray-700">${title}</h3>
+                        ${showDelete ? `<button onclick="clearDay('${deleteTarget}')" class="text-sm bg-red-50 text-red-500 px-4 py-2 rounded-xl hover:bg-red-100 transition font-bold border border-red-100"><i class="fa-solid fa-trash-can"></i> 이 날짜 비우기</button>` : ''}
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            `;
+            keys.forEach(key => {
+                const data = notebookData[key];
+                const shortTitle = key;
+                let textContent = '', imgContent = '', fontSize = 20;
+                if (typeof data === 'string') { imgContent = data; } 
+                else { textContent = data.text || ''; imgContent = data.img; fontSize = data.size || 20; }
+                
+                const formattedText = textContent.replace(/\n/g, '<br>');
+                html += `
+                    <div class="border-2 border-indigo-100 p-4 rounded-3xl bg-white shadow-sm hover:shadow-lg transition flex flex-col h-72">
+                        <p class="font-bold text-lg text-center mb-3 text-indigo-700 bg-indigo-50 py-2 rounded-xl">${shortTitle}</p>
+                        <div class="flex-1 flex gap-3 overflow-hidden">
+                            <div class="flex-1 bg-yellow-50 p-4 overflow-y-auto rounded-2xl border border-yellow-100 break-all font-bold text-gray-800 lined-bg" style="font-size: ${fontSize * 0.8}px; font-family: inherit;">
+                                ${formattedText}
+                            </div>
+                            <div class="flex-1 bg-white grid-bg rounded-2xl border-2 border-gray-200 flex items-center justify-center overflow-hidden">
+                                <img src="${imgContent || ''}" class="w-full h-full object-contain" onerror="this.style.display='none'">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div></div>`;
+            return html;
+        }
+
+        window.closeCollectionModal = function() { 
+            document.getElementById('collection-modal').classList.add('hidden'); 
+            backupDayData = null; hideUndoBar();
+        }
+
+        window.clearDay = async function(day) {
+            const confirmed = await customConfirm(`${day}요일 배움공책을 모두 지울까요?`);
+            if(!confirmed) return;
+            backupDayData = {}; backupDayName = day;
+            
+            Object.keys(notebookData).forEach(key => {
+                if(key.startsWith(`${day}요일`)) { backupDayData[key] = notebookData[key]; delete notebookData[key]; }
+            });
+            localStorage.setItem('hatban_notebooks', JSON.stringify(notebookData));
+            renderTimetable(); 
+            if(currentCollectionMode === 'all') renderCollectionView('all');
+            else if(currentCollectionMode === 'day') renderCollectionView('day', currentCollectionSub);
+            showUndoBar(day);
+        }
+
+        window.undoClearDay = function() {
+            if(backupDayData) {
+                notebookData = { ...notebookData, ...backupDayData };
+                localStorage.setItem('hatban_notebooks', JSON.stringify(notebookData));
+                backupDayData = null; renderTimetable(); 
+                if(currentCollectionMode === 'all') renderCollectionView('all');
+                else if(currentCollectionMode === 'day') renderCollectionView('day', currentCollectionSub);
+                hideUndoBar();
+            }
+        }
+
+        function showUndoBar(day) {
+            const bar = document.getElementById('day-undo-bar');
+            bar.querySelector('span').innerText = `${day}요일 내용이 삭제되었어요.`;
+            bar.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => { hideUndoBar(); }, 5000);
+        }
+        function hideUndoBar() {
+            document.getElementById('day-undo-bar').classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        }
+
+        window.downloadWeeklyNotebooks = async function() {
+            if(Object.keys(notebookData).length === 0) return customAlert("아직 다운로드할 배움공책 내용이 없어!");
+            
+            const btn = document.getElementById('download-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 고화질 이미지로 예쁘게 굽는 중...';
+            btn.disabled = true;
+
+            try {
+                const originalView = document.getElementById('collection-week-view');
+                const clone = originalView.cloneNode(true);
+                
+                clone.style.position = 'absolute';
+                clone.style.top = '-9999px';
+                clone.style.left = '0';
+                clone.style.width = '1024px'; 
+                clone.style.height = 'auto'; // 스크롤을 풀기 위해 auto 지정
+                clone.style.overflow = 'visible';
+                clone.style.backgroundColor = '#fafafa';
+                clone.style.padding = '40px';
+                clone.style.zIndex = '-1';
+                
+                const buttons = clone.querySelectorAll('button');
+                buttons.forEach(b => b.remove());
+                
+                // 텍스트 영역 길이에 맞춰 카드 늘어나게 설정
+                const cards = clone.querySelectorAll('.h-72');
+                cards.forEach(card => {
+                    card.classList.remove('h-72'); 
+                    card.style.height = 'auto'; 
+                });
+                const hiddenContainers = clone.querySelectorAll('.overflow-hidden');
+                hiddenContainers.forEach(container => {
+                    container.classList.remove('overflow-hidden'); 
+                });
+                const scrollContainers = clone.querySelectorAll('.overflow-y-auto');
+                scrollContainers.forEach(container => {
+                    container.classList.remove('overflow-y-auto'); 
+                    container.style.height = 'max-content'; 
+                });
+                
+                // 그림 영역은 흉하게 세로로 늘어나지 않게 정사각형 300x300 고정
+                const imgWrappers = clone.querySelectorAll('.grid-bg');
+                imgWrappers.forEach(wrapper => {
+                    wrapper.style.flex = 'none'; 
+                    wrapper.style.width = '300px'; 
+                    wrapper.style.height = '300px'; 
+                    wrapper.style.alignSelf = 'flex-start'; 
+                });
+
+                let dTitle = "이번 주 전체 배움 기록";
+                let fName = "전체";
+                if(currentCollectionMode === 'day') {
+                    dTitle = `${currentCollectionSub}요일 배움 기록`;
+                    fName = `${currentCollectionSub}요일`;
+                } else if(currentCollectionMode === 'subject') {
+                    dTitle = `${currentCollectionSub} 배움 기록`;
+                    fName = currentCollectionSub;
+                }
+
+                const titleHtml = `<div class="text-4xl font-bold text-center mb-10 text-indigo-600 border-b-4 border-indigo-200 pb-4"><i class="fa-solid fa-calendar-check"></i> ${dTitle}</div>`;
+                clone.insertAdjacentHTML('afterbegin', titleHtml);
+
+                document.body.appendChild(clone);
+
+                const canvas = await html2canvas(clone, {
+                    scale: 2, 
+                    useCORS: true,
+                    backgroundColor: '#fafafa'
+                });
+
+                document.body.removeChild(clone);
+
+                const link = document.createElement('a');
+                const dateStr = new Date().toLocaleDateString().replace(/\./g, '').replace(/ /g, '_');
+                link.download = `햇반이네_${fName}배움_${dateStr}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+
+                await customAlert("배움 공책이 멋진 고화질 이미지로 저장됐어! 📸");
+            } catch (err) {
+                console.error(err);
+                customAlert("앗! 이미지를 저장하는 중 문제가 생겼어 ㅠㅠ 다시 시도해줘!");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // ==========================================
+        // 9. 도우미 (사전, 계산기, 타이머/스톱워치)
+        // ==========================================
+        window.currentDictType = 'ko';
+        window.openDict = function(type) {
+            window.currentDictType = type;
+            document.getElementById('dict-title').innerHTML = type === 'ko' ? '<i class="fa-solid fa-book text-blue-500"></i> 국어 사전 검색' : '<i class="fa-solid fa-language text-purple-500"></i> 한자 사전 검색';
+            document.getElementById('dict-modal').classList.remove('hidden');
+            document.getElementById('dict-input').value = '';
+        }
+        window.searchDict = function() {
+            const q = document.getElementById('dict-input').value.trim();
+            if(!q) return customAlert("검색어를 입력해줘!");
+            let url = window.currentDictType === 'ko' ? `https://ko.dict.naver.com/#/search?query=${encodeURIComponent(q)}` : `https://hanja.dict.naver.com/#/search?query=${encodeURIComponent(q)}`;
+            window.open(url, '_blank'); document.getElementById('dict-modal').classList.add('hidden');
+        }
+
+        let calcVal = '0';
+        window.calcAction = function(btn) {
+            const display = document.getElementById('calc-display');
+            if(btn === 'C') calcVal = '0';
+            else if(btn === 'DEL') {
+                if(calcVal === 'Error') calcVal = '0';
+                else if(calcVal.length > 1) calcVal = calcVal.slice(0, -1);
+                else calcVal = '0';
+            }
+            else if(btn === '=') {
+                try {
+                    calcVal = new Function('return ' + calcVal)().toString();
+                    if(calcVal.includes('.') && calcVal.split('.')[1].length > 4) calcVal = parseFloat(calcVal).toFixed(4).replace(/\.?0+$/, '');
+                } catch(e) { calcVal = 'Error'; }
+            }
+            else {
+                if(calcVal === '0' && btn !== '.') calcVal = btn;
+                else if(calcVal === 'Error') calcVal = btn;
+                else calcVal += btn;
+            }
+            if(calcVal.length > 15) calcVal = calcVal.substring(0, 15); 
+            display.innerText = calcVal;
+        }
+
+        /* 타이머 & 스톱워치 로직 */
+        let tInterval = null, tRemaining = 25 * 60, isTRunning = false;
+        function updateTDisplay() {
+            let m = Math.floor(tRemaining / 60), s = tRemaining % 60;
+            document.getElementById('timer-display').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+        window.setCustomTimer = function() {
+            const minInput = document.getElementById('custom-timer-min').value;
+            const min = parseInt(minInput);
+            if (!min || min <= 0) return customAlert("올바른 분(시간)을 입력해주세요!");
+            clearInterval(tInterval); isTRunning = false;
+            tRemaining = min * 60; updateTDisplay();
+            document.getElementById('timer-toggle-btn').innerHTML = '<i class="fa-solid fa-play ml-1"></i>';
+        }
+        window.toggleTimer = function() {
+            const btn = document.getElementById('timer-toggle-btn');
+            if(isTRunning) {
+                clearInterval(tInterval); isTRunning = false;
+                btn.innerHTML = '<i class="fa-solid fa-play ml-1"></i>';
+            } else {
+                isTRunning = true; btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                tInterval = safeSetInterval(() => {
+                    if(tRemaining > 0) { tRemaining--; updateTDisplay(); }
+                    else {
+                        clearInterval(tInterval); isTRunning = false;
+                        document.getElementById('timer-alarm-overlay').classList.remove('hidden');
+                        btn.innerHTML = '<i class="fa-solid fa-play ml-1"></i>';
+                    }
+                }, 1000);
+            }
+        }
+        window.resetTimer = function() { 
+            clearInterval(tInterval); isTRunning = false;
+            document.getElementById('timer-toggle-btn').innerHTML = '<i class="fa-solid fa-play ml-1"></i>';
+            updateTDisplay(); 
+        }
+        window.stopTimerAlarm = function() {
+            document.getElementById('timer-alarm-overlay').classList.add('hidden');
+        }
+
+        let swInterval = null, swTime = 0, isSwRunning = false;
+        function updateSwDisplay() {
+            let m = Math.floor(swTime / 6000), s = Math.floor((swTime % 6000) / 100), ms = swTime % 100;
+            document.getElementById('stopwatch-display').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
+        window.toggleStopwatch = function() {
+            const btn = document.getElementById('stopwatch-toggle-btn');
+            if(isSwRunning) {
+                clearInterval(swInterval); isSwRunning = false;
+                btn.innerHTML = '<i class="fa-solid fa-play ml-1"></i>';
+            } else {
+                isSwRunning = true; btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                swInterval = safeSetInterval(() => { swTime++; updateSwDisplay(); }, 10);
+            }
+        }
+        window.resetStopwatch = function() {
+            clearInterval(swInterval); isSwRunning = false; swTime = 0; updateSwDisplay();
+            document.getElementById('stopwatch-toggle-btn').innerHTML = '<i class="fa-solid fa-play ml-1"></i>';
+        }
+
+        window.openTimeModal = function() { document.getElementById('time-modal').classList.remove('hidden'); }
+        window.closeTimeModal = function() { document.getElementById('time-modal').classList.add('hidden'); }
+        window.switchTimeTab = function(tab) {
+            if(tab === 'timer') {
+                document.getElementById('view-timer').classList.remove('hidden'); document.getElementById('view-stopwatch').classList.add('hidden');
+                document.getElementById('tab-btn-timer').className = "px-4 py-2 rounded-lg font-bold bg-white shadow-sm text-orange-500 transition";
+                document.getElementById('tab-btn-stopwatch').className = "px-4 py-2 rounded-lg font-bold text-gray-500 hover:text-orange-500 transition";
+            } else {
+                document.getElementById('view-stopwatch').classList.remove('hidden'); document.getElementById('view-timer').classList.add('hidden');
+                document.getElementById('tab-btn-stopwatch').className = "px-4 py-2 rounded-lg font-bold bg-white shadow-sm text-blue-500 transition";
+                document.getElementById('tab-btn-timer').className = "px-4 py-2 rounded-lg font-bold text-gray-500 hover:text-orange-500 transition";
+            }
+        }
+
+        // ==========================================
+        // 10. 집중 게임
+        // ==========================================
+        window.showGameMenu = function() {
+            document.getElementById('game-menu').classList.remove('hidden');
+            const ids = ['match', 'math', 'mine', 'tensec', 'tictactoe', 'gomoku', 'baseball', 'sudoku'];
+            ids.forEach(id => {
+                const play = document.getElementById('game-' + id);
+                if(play) play.classList.add('hidden');
+            });
+            clearAllIntervals(); 
+        }
+        window.openGame = function(id) {
+            document.getElementById('game-menu').classList.add('hidden');
+            const g = document.getElementById('game-' + id);
+            if(g) g.classList.remove('hidden');
+            if(id === 'match') showMatchConfig();
+            if(id === 'math') showMathConfig();
+            if(id === 'mine') showMineConfig();
+            if(id === 'tensec') initTenSecGame();
+            if(id === 'tictactoe') initTicTacToe();
+            if(id === 'gomoku') initGomoku();
+            if(id === 'baseball') showBaseballConfig();
+            if(id === 'sudoku') showSudokuConfig();
+        }
+
+        // 10-1. 짝맞추기 (일반/횟수/시간)
+        const svgChar = `<svg viewBox="0 0 100 100" class="w-full h-full drop-shadow"><path d="M20,60 Q20,20 50,25 Q80,20 85,60 Q90,90 50,85 Q10,90 20,60" fill="COLOR_HERE" /><circle cx="35" cy="45" r="5" fill="#555" /><circle cx="65" cy="45" r="5" fill="#555" /><path d="M45,55 Q50,60 55,55" stroke="#555" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+        const fullMatchColors = ['#FFB6C1', '#AEC6CF', '#77DD77', '#FDFD96', '#CFCFC4', '#FFD1DC', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA', '#fca5a5', '#fdba74', '#fcd34d', '#86efac', '#67e8f9', '#93c5fd', '#c4b5fd', '#d8b4fe', '#f9a8d4', '#fda4af', '#f87171', '#fb923c', '#fbbf24', '#4ade80', '#38bdf8'];
+        let matchFlipped = [], matchPairs = 0, matchMoves = 0, isMatchLocked = false;
+        let matchMode = 'normal', matchCardCount = 20, matchTimeLimit = 0, matchTimerInt = null;
+
+        window.showMatchConfig = function() {
+            document.getElementById('match-config-ui').classList.remove('hidden');
+            document.getElementById('match-game-ui').classList.add('hidden');
+            toggleMatchModeUI();
+        }
+
+        window.toggleMatchModeUI = function() {
+            matchMode = document.getElementById('match-mode-select').value;
+            const cardUi = document.getElementById('match-cards-ui');
+            if(matchMode === 'normal') cardUi.classList.remove('hidden');
+            else cardUi.classList.add('hidden'); 
+            
+            renderRecords('record-list-match', gameRecords.match[matchMode], matchMode === 'time' ? '초 남김' : '회');
+        }
+
+        window.initMatchGame = function() {
+            document.getElementById('match-config-ui').classList.add('hidden');
+            document.getElementById('match-game-ui').classList.remove('hidden');
+            
+            matchMode = document.getElementById('match-mode-select').value;
+            if(matchMode === 'normal') matchCardCount = parseInt(document.getElementById('match-card-slider').value) || 20;
+            else matchCardCount = 20; 
+            if(matchCardCount % 2 !== 0) matchCardCount++;
+            
+            const board = document.getElementById('match-board');
+            board.innerHTML = ''; matchPairs = 0; matchMoves = 0;
+            document.getElementById('game-moves').innerText = matchMoves;
+            isMatchLocked = false; matchFlipped = [];
+            
+            clearAllIntervals();
+            const timeDisplay = document.getElementById('match-time-display-container');
+            if(matchMode === 'time') {
+                timeDisplay.classList.remove('hidden');
+                matchTimeLimit = 60; 
+                document.getElementById('game-match-time').innerText = matchTimeLimit;
+                matchTimerInt = safeSetInterval(() => {
+                    matchTimeLimit--;
+                    document.getElementById('game-match-time').innerText = matchTimeLimit;
+                    if(matchTimeLimit <= 0) {
+                        clearAllIntervals(); isMatchLocked = true;
+                        customAlert("시간 초과! 실패했습니다 ㅠㅠ").then(() => showMatchConfig());
+                    }
+                }, 1000);
+            } else {
+                timeDisplay.classList.add('hidden');
+            }
+
+            const cols = Math.min(10, Math.ceil(Math.sqrt(matchCardCount)));
+            board.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+
+            let selectedColors = fullMatchColors.slice(0, matchCardCount / 2);
+            let deck = [...selectedColors, ...selectedColors].sort(() => Math.random() - 0.5);
+            deck.forEach(color => {
+                const card = document.createElement('div');
+                card.className = 'card relative w-full aspect-square cursor-pointer hover:scale-[1.02] transition';
+                card.dataset.color = color;
+                card.innerHTML = `
+                    <div class="card-inner w-full h-full relative transition-transform duration-500 transform-style-3d shadow-sm rounded-xl">
+                        <div class="card-front bg-white border-4 border-pink-100 rounded-xl flex items-center justify-center text-xl md:text-3xl text-pink-300 font-bold backface-hidden absolute w-full h-full inset-0">?</div>
+                        <div class="card-back bg-pastel-pink rounded-xl flex items-center justify-center p-2 backface-hidden absolute w-full h-full inset-0 border-4 border-pink-200" style="transform: rotateY(180deg);">${svgChar.replace('COLOR_HERE', color)}</div>
+                    </div>`;
+                card.onclick = () => flipMatchCard(card);
+                board.appendChild(card);
+            });
+        }
+        function flipMatchCard(card) {
+            if(isMatchLocked || card.classList.contains('flipped') || matchFlipped.includes(card)) return;
+            card.classList.add('flipped'); matchFlipped.push(card);
+            
+            if(matchFlipped.length === 2) {
+                matchMoves++; 
+                document.getElementById('game-moves').innerText = matchMoves;
+                
+                if(matchMode === 'moves' && matchMoves > 30) {
+                    clearAllIntervals(); isMatchLocked = true;
+                    setTimeout(() => customAlert(`30회를 초과하여 실패했습니다 ㅠㅠ\n(${matchMoves}회 소요)`).then(() => showMatchConfig()), 500);
+                    return; 
+                }
+
+                const [c1, c2] = matchFlipped;
+                if(c1.dataset.color === c2.dataset.color) {
+                    matchPairs++; matchFlipped = [];
+                    c1.querySelector('.card-back').classList.add('animate-[jelly_0.5s]');
+                    c2.querySelector('.card-back').classList.add('animate-[jelly_0.5s]');
+                    
+                    if(matchPairs === matchCardCount / 2) {
+                        clearAllIntervals();
+                        let scoreLabel = matchMode === 'time' ? `${matchTimeLimit}초 남김` : (matchMode === 'normal' ? `${matchCardCount}장 / ${matchMoves}회` : `${matchMoves}회`);
+                        let scoreRaw = matchMode === 'time' ? matchTimeLimit : matchMoves;
+                        let isAscending = matchMode !== 'time'; 
+                        
+                        saveRecord('match', matchMode, scoreRaw, scoreLabel, isAscending);
+                        setTimeout(() => customAlert(`축하해!\n모두 다 찾았어!\n(${scoreLabel})`).then(() => showMatchConfig()), 500);
+                    }
+                } else {
+                    isMatchLocked = true;
+                    setTimeout(() => { c1.classList.remove('flipped'); c2.classList.remove('flipped'); matchFlipped = []; isMatchLocked = false; }, 800);
+                }
+            }
+        }
+
+        // 10-2. 스피드 암산
+        let mathScore = 0, mathTime = 10, mathTimerInt = null, currentMathAns = 0, currentMathInput = "";
+        let mathMode = 'mul';
+
+        window.showMathConfig = function() {
+            document.getElementById('math-config-ui').classList.remove('hidden');
+            document.getElementById('math-game-ui').classList.add('hidden');
+            renderMathRecords();
+            clearAllIntervals();
+        }
+
+        window.renderMathRecords = function() {
+            mathMode = document.getElementById('math-mode-select').value;
+            renderRecords('record-list-math', gameRecords.math[mathMode], '점');
+        }
+
+        window.initMathGame = function() { 
+            mathMode = document.getElementById('math-mode-select').value;
+            document.getElementById('math-config-ui').classList.add('hidden');
+            document.getElementById('math-game-ui').classList.remove('hidden');
+            mathScore = 0; document.getElementById('math-score').innerText = mathScore; nextMathProblem(); 
+        }
+        
+        function nextMathProblem() {
+            currentMathInput = ""; document.getElementById('math-input-display').innerText = "?";
+            mathTime = 10; updateMathTimerBar(); clearAllIntervals();
+
+            if(mathMode === 'mul') {
+                let a = Math.floor(Math.random() * 90) + 10, b = Math.floor(Math.random() * 8) + 2;
+                currentMathAns = a * b; document.getElementById('math-question').innerText = `${a} × ${b} =`;
+            } else {
+                let b = Math.floor(Math.random() * 8) + 2, ans = Math.floor(Math.random() * (Math.floor(999/b) - Math.ceil(100/b) + 1)) + Math.ceil(100/b);
+                currentMathAns = ans; document.getElementById('math-question').innerText = `${b * ans} ÷ ${b} =`;
+            }
+            mathTimerInt = safeSetInterval(() => {
+                mathTime--; updateMathTimerBar();
+                if(mathTime <= 0) {
+                    clearAllIntervals(); 
+                    saveRecord('math', mathMode, mathScore, `${mathScore}점`, false); 
+                    customAlert(`시간 초과!\n최종 점수는 ${mathScore}점이야!`).then(() => showMathConfig());
+                }
+            }, 1000);
+        }
+        function updateMathTimerBar() {
+            const bar = document.getElementById('math-timer-bar');
+            bar.style.width = `${(mathTime / 10) * 100}%`;
+            if(mathTime <= 3) bar.classList.replace('bg-blue-500', 'bg-red-500'); else bar.classList.replace('bg-red-500', 'bg-blue-500');
+        }
+        window.mathNumpad = function(val) {
+            if(val === 'DEL') currentMathInput = currentMathInput.slice(0, -1);
+            else if(val === 'ENTER') return checkMathAnswer();
+            else if(currentMathInput.length < 5) currentMathInput += val;
+            document.getElementById('math-input-display').innerText = currentMathInput || "?";
+        }
+        function checkMathAnswer() {
+            if(currentMathInput === "") return;
+            const display = document.getElementById('math-input-display');
+            if(parseInt(currentMathInput) === currentMathAns) {
+                clearAllIntervals(); mathScore++; document.getElementById('math-score').innerText = mathScore;
+                display.classList.add('bg-green-100', 'text-green-600', 'border-green-400');
+                setTimeout(() => { display.classList.remove('bg-green-100', 'text-green-600', 'border-green-400'); nextMathProblem(); }, 400);
+            } else {
+                display.classList.add('animate-[jelly_0.3s]', 'bg-red-100', 'text-red-500');
+                setTimeout(() => { display.classList.remove('animate-[jelly_0.3s]', 'bg-red-100', 'text-red-500'); currentMathInput = ""; display.innerText = "?"; }, 400);
+            }
+        }
+
+        // 10-3. 지뢰찾기
+        let mineBoard = [], mineRows = 8, mineCols = 8, mineCount = 10, mineFlags = 0, mineGameOver = false, minePressTimer = null, isMinePressing = false;
+        
+        window.showMineConfig = function() {
+            document.getElementById('mine-config-ui').classList.remove('hidden');
+            document.getElementById('mine-game-ui').classList.add('hidden');
+        }
+        window.openMineHelp = function() { document.getElementById('mine-help-modal').classList.remove('hidden'); }
+        window.closeMineHelp = function() { document.getElementById('mine-help-modal').classList.add('hidden'); }
+        
+        window.initMineGame = function() {
+            document.getElementById('mine-config-ui').classList.add('hidden');
+            document.getElementById('mine-game-ui').classList.remove('hidden');
+            
+            const level = parseInt(document.getElementById('mine-level-select').value);
+            mineRows = level; mineCols = level;
+            if(level === 10) mineCount = 15;
+            else if(level === 15) mineCount = 35;
+            else if(level === 20) mineCount = 50;
+
+            mineGameOver = false; mineFlags = 0; document.getElementById('mine-count').innerText = mineCount;
+            const boardEl = document.getElementById('mine-board'); boardEl.innerHTML = '';
+            
+            boardEl.style.gridTemplateColumns = `repeat(${mineCols}, minmax(0, 1fr))`;
+            const cellStyle = level === 20 ? 'w-6 h-6 text-sm' : (level === 15 ? 'w-8 h-8 text-base' : 'w-10 h-10 text-lg');
+
+            mineBoard = Array(mineRows).fill().map(() => Array(mineCols).fill().map(() => ({ mine: false, revealed: false, flagged: false, count: 0 })));
+            
+            let placed = 0;
+            while(placed < mineCount) {
+                let r = Math.floor(Math.random() * mineRows), c = Math.floor(Math.random() * mineCols);
+                if(!mineBoard[r][c].mine) { mineBoard[r][c].mine = true; placed++; }
+            }
+            for(let r=0; r<mineRows; r++) for(let c=0; c<mineCols; c++) {
+                if(!mineBoard[r][c].mine) {
+                    let cnt = 0;
+                    for(let dr=-1; dr<=1; dr++) for(let dc=-1; dc<=1; dc++) {
+                        if(r+dr>=0 && r+dr<mineRows && c+dc>=0 && c+dc<mineCols && mineBoard[r+dr][c+dc].mine) cnt++;
+                    }
+                    mineBoard[r][c].count = cnt;
+                }
+            }
+
+            for(let r=0; r<mineRows; r++) for(let c=0; c<mineCols; c++) {
+                const cell = document.createElement('div');
+                cell.className = `mine-cell ${cellStyle} bg-blue-100 rounded border-b-2 border-blue-300 flex items-center justify-center font-bold cursor-pointer`;
+                cell.dataset.r = r; cell.dataset.c = c;
+                
+                cell.addEventListener('pointerdown', handleMineDown);
+                cell.addEventListener('pointerup', handleMineUp);
+                cell.addEventListener('pointerleave', handleMineCancel);
+                cell.addEventListener('pointercancel', handleMineCancel);
+                cell.addEventListener('contextmenu', (e) => { e.preventDefault(); if(!isMinePressing && !mineGameOver && !mineBoard[r][c].revealed) toggleMineFlag(r, c); });
+                boardEl.appendChild(cell);
+            }
+        }
+
+        function handleMineDown(e) {
+            if(e.button === 2) return;
+            const cellEl = e.target.closest('.mine-cell'); if(!cellEl) return;
+            const r = parseInt(cellEl.dataset.r), c = parseInt(cellEl.dataset.c);
+            if(mineGameOver || mineBoard[r][c].revealed) return;
+            
+            isMinePressing = true; cellEl.classList.add('scale-95', 'bg-blue-200'); cellEl.classList.remove('border-b-2');
+            minePressTimer = setTimeout(() => { if(isMinePressing) { isMinePressing = false; resetCellVisual(cellEl); toggleMineFlag(r, c); } }, 400); 
+        }
+        function handleMineUp(e) {
+            if(e.button === 2) return;
+            const cellEl = e.target.closest('.mine-cell'); if(!cellEl) return;
+            const r = parseInt(cellEl.dataset.r), c = parseInt(cellEl.dataset.c);
+            resetCellVisual(cellEl);
+            if(mineGameOver || mineBoard[r][c].revealed) return;
+            if(isMinePressing) { clearTimeout(minePressTimer); isMinePressing = false; if (!mineBoard[r][c].flagged) revealMine(r, c); }
+        }
+        function handleMineCancel(e) { 
+            const cellEl = e.target.closest('.mine-cell'); if(cellEl) resetCellVisual(cellEl);
+            if(isMinePressing) { clearTimeout(minePressTimer); isMinePressing = false; }
+        }
+        function resetCellVisual(cellEl) {
+            cellEl.classList.remove('scale-95', 'bg-blue-200'); if(!cellEl.classList.contains('bg-white')) cellEl.classList.add('border-b-2');
+        }
+        function toggleMineFlag(r, c) {
+            let cellData = mineBoard[r][c]; if(cellData.revealed) return;
+            cellData.flagged = !cellData.flagged; mineFlags += cellData.flagged ? 1 : -1;
+            document.getElementById('mine-count').innerText = mineCount - mineFlags; updateMineUI(r, c);
+        }
+        function revealMine(r, c) {
+            let cellData = mineBoard[r][c]; if(cellData.flagged || cellData.revealed) return;
+            cellData.revealed = true; updateMineUI(r, c);
+            if(cellData.mine) { mineGameOver = true; showAllMines(); setTimeout(() => customAlert("펑! 지뢰를 밟았어! 💥"), 100); } 
+            else if(cellData.count === 0) {
+                for(let dr=-1; dr<=1; dr++) for(let dc=-1; dc<=1; dc++) if(r+dr>=0 && r+dr<mineRows && c+dc>=0 && c+dc<mineCols) revealMine(r+dr, c+dc);
+            }
+            checkMineWin();
+        }
+        function updateMineUI(r, c) {
+            const index = r * mineCols + c; const cellEl = document.getElementById('mine-board').children[index]; const data = mineBoard[r][c];
+            if(data.revealed) {
+                cellEl.classList.remove('bg-blue-100', 'border-blue-300', 'border-b-2'); cellEl.classList.add('bg-white', 'border', 'border-gray-200');
+                if(data.mine) { cellEl.innerHTML = '💣'; cellEl.classList.add('bg-red-200'); }
+                else if(data.count > 0) { const numColors = ['', 'text-blue-500', 'text-green-500', 'text-red-500', 'text-purple-500', 'text-pink-500', 'text-cyan-500', 'text-black', 'text-gray-500']; cellEl.innerHTML = data.count; cellEl.classList.add(numColors[data.count]); } 
+                else cellEl.innerHTML = '';
+            } else if(data.flagged) cellEl.innerHTML = '🚩'; else cellEl.innerHTML = '';
+        }
+        function showAllMines() {
+            for(let r=0; r<mineRows; r++) for(let c=0; c<mineCols; c++) if(mineBoard[r][c].mine) { mineBoard[r][c].revealed = true; updateMineUI(r, c); }
+        }
+        function checkMineWin() {
+            if(mineGameOver) return;
+            let unrevealed = 0; for(let r=0; r<mineRows; r++) for(let c=0; c<mineCols; c++) if(!mineBoard[r][c].revealed) unrevealed++;
+            if(unrevealed === mineCount) { mineGameOver = true; setTimeout(() => customAlert("대단해! 지뢰를 전부 피했어! 🎉").then(() => showMineConfig()), 100); }
+        }
+
+        // 10-4. 10초 맞추기
+        let tenSecStart = 0, tenSecInt = null, tenState = 0; 
+        window.initTenSecGame = function() {
+            clearAllIntervals(); tenState = 0;
+            const btn = document.getElementById('tensec-btn');
+            btn.innerText = "START"; btn.classList.replace('bg-red-400', 'bg-orange-400');
+            const display = document.getElementById('tensec-display');
+            display.innerText = "0.00";
+            display.classList.remove('text-pink-500', 'animate-[jelly_0.5s]');
+            renderRecords('record-list-tensec', gameRecords.tensec, '오차');
+        }
+        window.toggleTenSec = function() {
+            if(tenState === 0) {
+                tenState = 1; tenSecStart = Date.now();
+                const btn = document.getElementById('tensec-btn');
+                btn.innerText = "STOP!"; btn.classList.replace('bg-orange-400', 'bg-red-400');
+                let display = document.getElementById('tensec-display');
+                display.classList.remove('text-pink-500', 'animate-[jelly_0.5s]');
+                
+                tenSecInt = safeSetInterval(() => {
+                    let diff = (Date.now() - tenSecStart) / 1000;
+                    if(diff <= 5.0) display.innerText = diff.toFixed(2);
+                    else display.innerText = "?.??"; 
+                }, 10);
+            } else {
+                clearAllIntervals(); tenState = 0;
+                let diff = (Date.now() - tenSecStart) / 1000;
+                let display = document.getElementById('tensec-display');
+                display.innerText = diff.toFixed(2);
+                
+                let errorDiff = Math.abs(10 - diff).toFixed(2);
+                saveRecord('tensec', null, parseFloat(errorDiff), `오차 ${errorDiff}초`, true); 
+
+                if(diff === 10.00) {
+                    display.classList.add('text-pink-500', 'animate-[jelly_0.5s]');
+                    customAlert(`🎉 완벽합니다!! 🎉\n정확히 10.00초를 맞추셨습니다! 대단한 감각이네요!`).then(()=> initTenSecGame());
+                } else if(diff >= 9.5 && diff <= 10.5) {
+                    customAlert(`오차 ${errorDiff}초!\n대단해요! 아주 근접했어요.`).then(()=> initTenSecGame());
+                } else {
+                    customAlert(`오차 ${errorDiff}초!\n조금 아쉽네요. 다시 도전해보세요!`).then(()=> initTenSecGame());
+                }
+            }
+        }
+
+        // 10-5. 틱택토 
+        let tttBoard = Array(9).fill('');
+        let tttTurn = 'O'; 
+        window.initTicTacToe = function() {
+            tttBoard = Array(9).fill(''); tttTurn = 'O';
+            const status = document.getElementById('tictactoe-status');
+            status.innerText = "1P (O) 차례";
+            status.className = "text-xl font-bold mb-6 text-blue-600 bg-blue-50 px-6 py-2 rounded-full border border-blue-200";
+            renderTicTacToe();
+        }
+        function renderTicTacToe() {
+            const board = document.getElementById('tictactoe-board'); board.innerHTML = '';
+            for(let i=0; i<9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'tictactoe-cell bg-white rounded-xl flex items-center justify-center text-6xl font-black shadow-sm w-24 h-24 md:w-28 md:h-28';
+                if(tttBoard[i] === 'O') cell.innerHTML = '<span class="text-blue-500">O</span>';
+                else if(tttBoard[i] === 'X') cell.innerHTML = '<span class="text-red-500">X</span>';
+                cell.onclick = () => tictactoeMove(i);
+                board.appendChild(cell);
+            }
+        }
+        function tictactoeMove(idx) {
+            if(tttBoard[idx] !== '') return;
+            tttBoard[idx] = tttTurn; renderTicTacToe();
+            if(checkTicTacToeWin(tttTurn)) return customAlert(`${tttTurn === 'O' ? '1P' : '2P'} 승리!`).then(() => initTicTacToe());
+            if(!tttBoard.includes('')) return customAlert("무승부!").then(() => initTicTacToe());
+            
+            tttTurn = tttTurn === 'O' ? 'X' : 'O'; 
+            const status = document.getElementById('tictactoe-status');
+            if(tttTurn === 'O') {
+                status.innerText = "1P (O) 차례";
+                status.className = "text-xl font-bold mb-6 text-blue-600 bg-blue-50 px-6 py-2 rounded-full border border-blue-200";
+            } else {
+                status.innerText = "2P (X) 차례";
+                status.className = "text-xl font-bold mb-6 text-red-600 bg-red-50 px-6 py-2 rounded-full border border-red-200";
+            }
+        }
+        function checkTicTacToeWin(player) {
+            const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return lines.some(line => line.every(i => tttBoard[i] === player));
+        }
+
+        // 10-6. 오목
+        let gmBoard = [], gmTurn = 'B', gmSize = 15, gmGameOver = false;
+        window.initGomoku = function() {
+            gmBoard = Array(gmSize).fill().map(() => Array(gmSize).fill(''));
+            gmTurn = 'B'; gmGameOver = false;
+            document.getElementById('gomoku-status').innerHTML = "⚫ 흑돌 차례";
+            renderGomoku();
+        }
+        function renderGomoku() {
+            const board = document.getElementById('gomoku-board');
+            board.innerHTML = '';
+            for(let r=0; r<gmSize; r++) {
+                for(let c=0; c<gmSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = `gomoku-cell relative w-full h-full flex items-center justify-center gomoku-row-${r} gomoku-col-${c}`;
+                    
+                    if(gmBoard[r][c] === 'B') cell.innerHTML += `<div class="w-[85%] h-[85%] bg-black rounded-full shadow-[2px_2px_4px_rgba(0,0,0,0.5)] z-10 relative" style="background: radial-gradient(circle at 30% 30%, #444, #000);"></div>`;
+                    else if(gmBoard[r][c] === 'W') cell.innerHTML += `<div class="w-[85%] h-[85%] bg-white rounded-full shadow-[2px_2px_4px_rgba(0,0,0,0.5)] z-10 relative" style="background: radial-gradient(circle at 30% 30%, #fff, #ccc);"></div>`;
+                    
+                    if((r===3||r===11||r===7) && (c===3||c===11||c===7) && (r!==7||c===7)) {
+                         cell.innerHTML += `<div class="absolute w-[15%] h-[15%] max-w-[6px] max-h-[6px] bg-[#5c3a21] rounded-full z-[2]"></div>`;
+                    }
+                    
+                    cell.onclick = () => gmMove(r, c);
+                    board.appendChild(cell);
+                }
+            }
+        }
+        function gmMove(r, c) {
+            if(gmBoard[r][c] !== '' || gmGameOver) return;
+            gmBoard[r][c] = gmTurn; renderGomoku();
+            
+            if(checkGomokuWin(r, c, gmTurn)) {
+                gmGameOver = true;
+                setTimeout(() => customAlert(gmTurn === 'B' ? "흑돌 승리!" : "백돌 승리!").then(() => initGomoku()), 100);
+                return;
+            }
+            gmTurn = gmTurn === 'B' ? 'W' : 'B';
+            document.getElementById('gomoku-status').innerHTML = gmTurn === 'B' ? "⚫ 흑돌 차례" : "⚪ 백돌 차례";
+        }
+        function checkGomokuWin(r, c, player) {
+            const dirs = [[1,0], [0,1], [1,1], [1,-1]];
+            for(let d of dirs) {
+                let count = 1;
+                for(let i=1; i<=4; i++) {
+                    let nr = r + d[0]*i, nc = c + d[1]*i;
+                    if(nr>=0 && nr<gmSize && nc>=0 && nc<gmSize && gmBoard[nr][nc] === player) count++; else break;
+                }
+                for(let i=1; i<=4; i++) {
+                    let nr = r - d[0]*i, nc = c - d[1]*i;
+                    if(nr>=0 && nr<gmSize && nc>=0 && nc<gmSize && gmBoard[nr][nc] === player) count++; else break;
+                }
+                if(count >= 5) return true;
+            }
+            return false;
+        }
+
+        // 10-7. 숫자 야구
+        let bbAns = [], bbDigits = 3, bbAttempts = 0;
+        
+        window.showBaseballConfig = function() {
+            document.getElementById('baseball-config-ui').classList.remove('hidden');
+            document.getElementById('baseball-game-ui').classList.add('hidden');
+        }
+
+        window.initBaseball = function() {
+            bbDigits = parseInt(document.getElementById('baseball-digit-select').value);
+            document.getElementById('bb-target-length').innerText = bbDigits;
+            document.getElementById('baseball-config-ui').classList.add('hidden');
+            document.getElementById('baseball-game-ui').classList.remove('hidden');
+
+            let nums = [0,1,2,3,4,5,6,7,8,9];
+            nums.sort(() => Math.random() - 0.5);
+            bbAns = nums.slice(0, bbDigits);
+            bbAttempts = 0;
+            document.getElementById('baseball-log').innerHTML = '';
+            document.getElementById('baseball-input').value = '';
+        }
+
+        window.guessBaseball = function() {
+            let val = document.getElementById('baseball-input').value;
+            if(val.length !== bbDigits || new Set(val).size !== bbDigits) return customAlert(`서로 다른 ${bbDigits}자리 숫자를 입력하세요!`);
+            
+            bbAttempts++;
+            let s = 0, b = 0;
+            for(let i=0; i<bbDigits; i++) {
+                let n = parseInt(val[i]);
+                if(bbAns[i] === n) s++;
+                else if(bbAns.includes(n)) b++;
+            }
+            
+            const log = document.getElementById('baseball-log');
+            if(s === bbDigits) {
+                log.insertAdjacentHTML('afterbegin', `<p class="text-blue-500 font-black text-xl">🎉 ${val}: 삼진 아웃! (승리 - ${bbAttempts}회)</p>`);
+                customAlert(`삼진 아웃! 축하합니다!\n총 ${bbAttempts}번 만에 맞췄어요!`).then(() => showBaseballConfig());
+            } else if(s === 0 && b === 0) {
+                log.insertAdjacentHTML('afterbegin', `<p class="text-red-500">${val}: OUT</p>`);
+            } else {
+                log.insertAdjacentHTML('afterbegin', `<p class="text-gray-700">${val}: ${s}S ${b}B</p>`);
+            }
+            document.getElementById('baseball-input').value = '';
+        }
+
+        // 10-8. 스도쿠
+        const baseSudoku = [
+            [5,3,4,6,7,8,9,1,2], [6,7,2,1,9,5,3,4,8], [1,9,8,3,4,2,5,6,7],
+            [8,5,9,7,6,1,4,2,3], [4,2,6,8,5,3,7,9,1], [7,1,3,9,2,4,8,5,6],
+            [9,6,1,5,3,7,2,8,4], [2,8,7,4,1,9,6,3,5], [3,4,5,2,8,6,1,7,9]
+        ];
+        let sdkBoard = [], sdkHoles = [], sdkMistakes = 0, sdkSelected = null;
+
+        window.showSudokuConfig = function() {
+            document.getElementById('sudoku-config-ui').classList.remove('hidden');
+            document.getElementById('sudoku-game-ui').classList.add('hidden');
+        }
+
+        window.initSudoku = function() {
+            document.getElementById('sudoku-config-ui').classList.add('hidden');
+            document.getElementById('sudoku-game-ui').classList.remove('hidden');
+
+            sdkMistakes = 0; document.getElementById('sudoku-mistakes').innerText = sdkMistakes;
+            sdkSelected = null; sdkHoles = []; sdkBoard = JSON.parse(JSON.stringify(baseSudoku));
+            
+            let holeCount = parseInt(document.getElementById('sudoku-level-select').value);
+            while(holeCount > 0) {
+                let r = Math.floor(Math.random() * 9), c = Math.floor(Math.random() * 9);
+                if(!sdkHoles.some(h => h.r===r && h.c===c)) { sdkHoles.push({r, c}); holeCount--; }
+            }
+            renderSudoku();
+        }
+
+        function renderSudoku() {
+            const board = document.getElementById('sudoku-board'); board.innerHTML = '';
+            for(let r=0; r<9; r++) {
+                for(let c=0; c<9; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'sudoku-cell bg-white flex items-center justify-center text-lg md:text-2xl hover:bg-indigo-50';
+                    
+                    if(c===2 || c===5) cell.style.borderRight = "2px solid #555";
+                    if(r===2 || r===5) cell.style.borderBottom = "2px solid #555";
+                    
+                    const isHole = sdkHoles.find(h => h.r===r && h.c===c);
+                    if(isHole) {
+                        cell.classList.add('text-indigo-600', 'bg-indigo-50/30');
+                        if(isHole.val) cell.innerText = isHole.val;
+                        cell.onclick = () => {
+                            if(sdkSelected) sdkSelected.classList.remove('selected');
+                            sdkSelected = cell; cell.dataset.r = r; cell.dataset.c = c;
+                            cell.classList.add('selected');
+                        };
+                    } else {
+                        cell.innerText = sdkBoard[r][c]; cell.classList.add('text-gray-800');
+                    }
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        window.inputSudoku = function(val) {
+            if(!sdkSelected) return;
+            const r = parseInt(sdkSelected.dataset.r), c = parseInt(sdkSelected.dataset.c);
+            
+            if(val === 'clear') {
+                const hole = sdkHoles.find(h => h.r===r && h.c===c);
+                if(hole) { hole.val = ''; renderSudoku(); }
+                return;
+            }
+            
+            if(sdkBoard[r][c] === val) {
+                const hole = sdkHoles.find(h => h.r===r && h.c===c);
+                if(hole) { hole.val = val; renderSudoku(); checkSudokuWin(); }
+            } else {
+                sdkMistakes++; document.getElementById('sudoku-mistakes').innerText = sdkMistakes;
+                sdkSelected.classList.add('bg-red-200', 'text-red-600');
+                setTimeout(() => { if(sdkSelected) sdkSelected.classList.remove('bg-red-200', 'text-red-600'); }, 500);
+                if(sdkMistakes >= 3) { setTimeout(() => customAlert("3번 틀렸습니다. 게임 오버! 😥").then(() => showSudokuConfig()), 100); }
+            }
+        }
+        function checkSudokuWin() {
+            if(sdkHoles.every(h => h.val)) setTimeout(() => customAlert("스도쿠 완성! 축하합니다 🎉").then(() => showSudokuConfig()), 100);
+        }
+
+        // ==========================================
+        // 앱 시작
+        // ==========================================
+        window.onload = () => {
+            initData();
+        }
+    </script>
+</body>
+</html>
