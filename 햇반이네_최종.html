@@ -928,6 +928,12 @@
             }
         }
 
+        function escapeHTML(value) {
+            const element = document.createElement('div');
+            element.textContent = String(value ?? '');
+            return element.innerHTML;
+        }
+
         function startGameInterval(game, fn, time) {
             clearGameInterval(game);
             const id = setInterval(fn, time);
@@ -1273,13 +1279,15 @@
             memos.forEach(memo => {
                 const div = document.createElement('div');
                 div.className = `${memo.color || 'bg-pastel-yellow'} p-4 md:p-5 rounded-2xl shadow-sm relative group transform transition duration-300 hover:-translate-y-1 flex flex-col border border-gray-100 cursor-pointer`;
+                div.dataset.memoId = memo.id;
                 div.onclick = () => openMemoModal(memo.id);
                 div.innerHTML = `
                     <div class="drag-handle absolute top-0 left-0 w-full h-8 flex items-center justify-center cursor-grab active:cursor-grabbing text-black/10 hover:text-black/30 z-10" onclick="event.stopPropagation();"><i class="fa-solid fa-grip-lines"></i></div>
-                    <button onclick="deleteMemo('${memo.id}', event)" class="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 text-gray-400 hover:text-red-500 w-8 h-8 bg-white/50 rounded-full flex items-center justify-center z-20 transition"><i class="fa-solid fa-xmark"></i></button>
-                    <p class="text-base text-gray-800 whitespace-pre-wrap break-words pt-3 flex-1 font-bold">${memo.text}</p>
+                    <button onclick="deleteMemo(this.closest('[data-memo-id]').dataset.memoId, event)" class="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 text-gray-400 hover:text-red-500 w-8 h-8 bg-white/50 rounded-full flex items-center justify-center z-20 transition"><i class="fa-solid fa-xmark"></i></button>
+                    <p class="memo-text text-base text-gray-800 whitespace-pre-wrap break-words pt-3 flex-1 font-bold"></p>
                     <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 w-10 h-3 bg-white/40 rounded-full"></div>
                 `;
+                div.querySelector('.memo-text').textContent = memo.text;
                 container.appendChild(div);
             });
         }
@@ -1741,7 +1749,7 @@
                 if (typeof data === 'string') { imgContent = data; } 
                 else { textContent = data.text || ''; imgContent = data.img; fontSize = data.size || 20; }
                 
-                const formattedText = textContent.replace(/\n/g, '<br>');
+                const formattedText = escapeHTML(textContent).replace(/\n/g, '<br>');
                 html += `
                     <div class="border-2 border-indigo-100 p-4 rounded-3xl bg-white shadow-sm hover:shadow-lg transition flex flex-col h-72">
                         <p class="font-bold text-lg text-center mb-3 text-indigo-700 bg-indigo-50 py-2 rounded-xl">${shortTitle}</p>
@@ -2497,14 +2505,19 @@
             }
             
             const log = document.getElementById('baseball-log');
+            const resultLine = document.createElement('p');
             if(s === bbDigits) {
-                log.insertAdjacentHTML('afterbegin', `<p class="text-blue-500 font-black text-xl">🎉 ${val}: 삼진 아웃! (승리 - ${bbAttempts}회)</p>`);
+                resultLine.className = 'text-blue-500 font-black text-xl';
+                resultLine.textContent = `🎉 ${val}: 삼진 아웃! (승리 - ${bbAttempts}회)`;
                 customAlert(`삼진 아웃! 축하합니다!\n총 ${bbAttempts}번 만에 맞췄어요!`).then(() => showBaseballConfig());
             } else if(s === 0 && b === 0) {
-                log.insertAdjacentHTML('afterbegin', `<p class="text-red-500">${val}: OUT</p>`);
+                resultLine.className = 'text-red-500';
+                resultLine.textContent = `${val}: OUT`;
             } else {
-                log.insertAdjacentHTML('afterbegin', `<p class="text-gray-700">${val}: ${s}S ${b}B</p>`);
+                resultLine.className = 'text-gray-700';
+                resultLine.textContent = `${val}: ${s}S ${b}B`;
             }
+            log.prepend(resultLine);
             document.getElementById('baseball-input').value = '';
         }
 
