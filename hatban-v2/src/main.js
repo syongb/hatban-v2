@@ -77,11 +77,18 @@ function updateNavigation(routeId) {
 renderAppShell();
 
 const mainContent = document.querySelector('#main-content');
+let activeViewCleanup = null;
 const router = createRouter({
   routes,
   defaultRoute: 'home',
   onRouteChange(routeId, route) {
-    mainContent.replaceChildren(route.render());
+    activeViewCleanup?.();
+
+    const view = route.render();
+    const viewElement = view.element || view;
+    activeViewCleanup = view.destroy || null;
+
+    mainContent.replaceChildren(viewElement);
     updateNavigation(routeId);
     document.title = `${route.label} | 햇반이네 v2`;
     mainContent.focus({ preventScroll: true });

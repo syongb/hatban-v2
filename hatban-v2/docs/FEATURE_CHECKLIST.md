@@ -27,11 +27,13 @@
 
 ## 배움공책
 
-- [ ] 월~금, 1~6교시 시간표
-- [ ] 현재 요일과 교시 강조
-- [ ] 빈 시간 처리
-- [ ] 교시/과목별 공책 열기
-- [ ] 텍스트 입력과 글자 크기
+- [x] 월~금, 1~6교시 시간표
+- [x] 현재 요일과 교시 강조
+- [x] 빈 시간 처리
+- [x] 교시/과목별 공책 열기
+- [~] 텍스트 입력과 글자 크기 — 텍스트 입력 완료, 글자 크기는 미구현
+- [x] 과목별 텍스트 debounce 자동 저장 및 복원
+- [x] 과목/화면 이동 및 새로고침 후 텍스트 유지
 - [ ] 텍스트와 Canvas 모드 전환
 - [ ] 마우스 그리기
 - [ ] 터치 및 펜 입력
@@ -113,13 +115,13 @@
 - [ ] `hatban_memos`의 `[{ id, text, color }]`
 - [ ] `hatban_notebooks`의 문자열형 구버전 Canvas 데이터
 - [ ] `hatban_notebooks`의 `{ img, text, size }` 객체형 데이터
-- [ ] 손상된 JSON이 있어도 나머지 앱 초기화
+- [x] 손상된 JSON이 있어도 나머지 앱 초기화
 - [ ] migration 전 원본 데이터를 자동 삭제하지 않음
 
 ### v2 및 향후 서버
 
-- [ ] v2 localStorage namespace 결정
-- [ ] local 저장소 repository 구현
+- [x] v2 localStorage namespace 결정 — `hatban_v2_notebooks`
+- [x] 배움공책 local 저장소 repository 구현
 - [ ] 학생 닉네임 데이터 모델
 - [ ] 반 코드 데이터 모델
 - [ ] 게임 결과 공통 데이터 모델

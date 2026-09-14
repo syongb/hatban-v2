@@ -28,13 +28,9 @@ index.html
 
 ### 저장소
 
-첫 저장 기능을 구현할 때 `src/services/storage/`를 추가하고 UI가 `localStorage`를 직접 호출하지 않게 한다. 예시는 다음과 같다.
+첫 저장 기능인 배움공책은 기능 전용 `notebookStorage.js`를 사용한다. 화면은 `localStorage` 키와 JSON 파싱 방법을 알지 못한다. 다른 기능에서도 저장이 필요해져 공통 동작이 실제로 생기면 그때 `src/services/storage/`로 공통 부분을 올린다.
 
-```text
-src/services/storage/
-├─ localStorageRepository.js
-└─ storageKeys.js
-```
+손상된 JSON은 warning을 남기고 메모리 기본값으로 연다. 읽는 과정에서는 손상된 원본 값을 삭제하거나 정상 기본값으로 덮어쓰지 않는다.
 
 ### Supabase
 
@@ -50,14 +46,43 @@ src/services/records/
 
 ### 배움공책
 
-Canvas 입력, 기록 상태, PNG 생성, 공유를 한 파일에 섞지 않는다.
+현재 배움공책은 다음 세 책임으로 나뉜다.
 
 ```text
 src/features/notebook/
 ├─ notebookView.js
-├─ drawingCanvas.js
-├─ notebookStore.js
-└─ shareNotebook.js
+├─ notebookSchedule.js
+└─ notebookStorage.js
 ```
 
-`shareNotebook.js`는 Web Share API 지원 여부를 확인하고, 지원되지 않으면 PNG 다운로드를 사용한다.
+- `notebookView.js`: 선택 상태, 화면 렌더링, 입력과 autosave 연결
+- `notebookSchedule.js`: 월~금 시간표, 수업 시간, 현재 교시와 주간 날짜 계산
+- `notebookStorage.js`: `hatban_v2_notebooks` 읽기·안전 파싱·저장
+
+저장 데이터는 다음 형태다.
+
+```json
+{
+  "version": 1,
+  "entries": {
+    "2026-09-15:tue:3": {
+      "id": "2026-09-15:tue:3",
+      "date": "2026-09-15",
+      "dayId": "tue",
+      "day": "화요일",
+      "subject": "수학",
+      "period": 3,
+      "text": "오늘 배운 내용",
+      "drawing": null,
+      "createdAt": "ISO 날짜",
+      "updatedAt": "ISO 날짜"
+    }
+  }
+}
+```
+
+공책 ID에 날짜·요일·교시를 사용하므로 같은 과목이 하루에 여러 번 있어도 분리되며, 주가 바뀌면 새 기록이 된다. `drawing`은 현재 `null`이지만 다음 Canvas 단계에서 같은 항목에 그림 데이터를 연결할 수 있다.
+
+텍스트 입력은 700ms debounce로 저장한다. 과목이나 앱 화면을 바꾸거나 페이지가 종료될 때 대기 중인 기록은 즉시 저장한다. `main.js`는 화면 모듈이 반환한 선택적 `destroy()`를 다음 화면 렌더 전에 호출한다.
+
+다음 단계에서는 이 폴더에 `drawingCanvas.js`와 `shareNotebook.js`를 추가한다. Canvas 입력, PNG 생성, 공유는 텍스트 저장과 한 파일에 섞지 않는다. `shareNotebook.js`는 Web Share API 지원 여부를 확인하고 지원되지 않으면 PNG 다운로드를 사용한다.
