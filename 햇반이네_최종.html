@@ -2038,6 +2038,7 @@
         let matchMode = 'normal', matchCardCount = 20, matchTimeLimit = 0;
 
         window.showMatchConfig = function() {
+            clearGameInterval('match');
             document.getElementById('match-config-ui').classList.remove('hidden');
             document.getElementById('match-game-ui').classList.add('hidden');
             toggleMatchModeUI();
