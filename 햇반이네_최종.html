@@ -917,6 +917,17 @@
         window.alertResolve = null;
         window.confirmResolve = null;
 
+        function safeParseJSON(value, fallback, storageKey = '') {
+            if (!value) return fallback;
+
+            try {
+                return JSON.parse(value);
+            } catch (error) {
+                console.warn(`Failed to parse localStorage key: ${storageKey}`, error);
+                return fallback;
+            }
+        }
+
         function safeSetInterval(fn, time) {
             const id = setInterval(fn, time);
             activeIntervals.push(id);
@@ -969,8 +980,10 @@
         // ==========================================
         window.updateDday = function() {
             const savedDday = localStorage.getItem('hatban_dday');
-            if (savedDday) customDday = JSON.parse(savedDday);
-            else {
+            const parsedDday = safeParseJSON(savedDday, null, 'hatban_dday');
+            if (parsedDday && typeof parsedDday === 'object' && !Array.isArray(parsedDday)) {
+                customDday = parsedDday;
+            } else {
                 const now = new Date();
                 let year = now.getFullYear();
                 if (now.getMonth() > 6 || (now.getMonth() === 6 && now.getDate() > 22)) year++;
@@ -1045,45 +1058,60 @@
             window.changeFont(savedFont);
 
             const savedProfile = localStorage.getItem('hatban_profile');
-            if(savedProfile) customProfile = JSON.parse(savedProfile);
+            const parsedProfile = safeParseJSON(savedProfile, null, 'hatban_profile');
+            if (parsedProfile && typeof parsedProfile === 'object' && !Array.isArray(parsedProfile)) {
+                customProfile = parsedProfile;
+            }
             window.applyProfile();
 
             window.updateDday();
             
             const savedRecords = localStorage.getItem('hatban_game_records');
             if(savedRecords) {
-                const parsed = JSON.parse(savedRecords);
-                if(parsed.matchMoves || parsed.matchTime) {
-                    gameRecords = { match: { normal: [], moves: [], time: [] }, math: { mul: [], div: [] }, tensec: [] };
-                } else {
-                    delete parsed.chosung;
-                    gameRecords = parsed;
+                const parsed = safeParseJSON(savedRecords, null, 'hatban_game_records');
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    if(parsed.matchMoves || parsed.matchTime) {
+                        gameRecords = { match: { normal: [], moves: [], time: [] }, math: { mul: [], div: [] }, tensec: [] };
+                    } else {
+                        delete parsed.chosung;
+                        gameRecords = parsed;
+                    }
                 }
             }
 
             const savedQuote = localStorage.getItem('hatban_quote');
-            if(savedQuote) customQuoteData = JSON.parse(savedQuote);
+            const parsedQuote = safeParseJSON(savedQuote, null, 'hatban_quote');
+            if (parsedQuote && typeof parsedQuote === 'object' && !Array.isArray(parsedQuote)) {
+                customQuoteData = parsedQuote;
+            }
             setDailyQuote();
 
             const todayStr = new Date().toDateString();
             const savedRatings = localStorage.getItem('hatban_ratings');
             if(savedRatings) {
-                const parsed = JSON.parse(savedRatings);
-                if(parsed.date === todayStr) attitudeData = parsed;
-                else {
+                const parsed = safeParseJSON(savedRatings, null, 'hatban_ratings');
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.date === todayStr) {
+                    attitudeData = parsed;
+                } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
                     attitudeData = { date: todayStr, attitude: 0, listen: 0, outcome: 0 };
                     localStorage.setItem('hatban_ratings', JSON.stringify(attitudeData));
+                } else {
+                    attitudeData = { date: todayStr, attitude: 0, listen: 0, outcome: 0 };
                 }
             } else attitudeData = { date: todayStr, attitude: 0, listen: 0, outcome: 0 };
             updateStarUI();
 
             const savedMemos = localStorage.getItem('hatban_memos');
-            if(savedMemos) memos = JSON.parse(savedMemos);
+            const parsedMemos = safeParseJSON(savedMemos, null, 'hatban_memos');
+            if (Array.isArray(parsedMemos)) memos = parsedMemos;
             renderAllMemos();
             initSortable();
 
             const savedNotebooks = localStorage.getItem('hatban_notebooks');
-            if(savedNotebooks) notebookData = JSON.parse(savedNotebooks);
+            const parsedNotebooks = safeParseJSON(savedNotebooks, null, 'hatban_notebooks');
+            if (parsedNotebooks && typeof parsedNotebooks === 'object' && !Array.isArray(parsedNotebooks)) {
+                notebookData = parsedNotebooks;
+            }
             
             renderTimetable();
             setInterval(renderTimetable, 60000); 
