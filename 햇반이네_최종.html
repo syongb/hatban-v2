@@ -880,7 +880,6 @@
         let editingMemoId = null; 
         let customQuoteData = { date: '', text: '' }; 
         let backupDayData = null; 
-        let backupDayName = '';
         
         let customProfile = { title: '햇반이네', emoji: '' };
         let customDday = { name: '여름방학', date: '' };
@@ -979,7 +978,9 @@
             document.getElementById('dday-date-input').value = customDday.date;
             document.getElementById('dday-modal').classList.remove('hidden');
         }
-        window.closeDdayModal = function() { document.getElementById('dday-modal').classList.add('hidden'); }
+        window.closeDdayModal = function() {
+            document.getElementById('dday-modal').classList.add('hidden');
+        }
         window.saveDday = function() {
             const name = document.getElementById('dday-name-input').value.trim() || '여름방학';
             const date = document.getElementById('dday-date-input').value;
@@ -1091,14 +1092,17 @@
             document.getElementById('quote-input').value = document.getElementById('daily-quote').innerText;
             document.getElementById('quote-modal').classList.remove('hidden');
         }
-        window.closeQuoteModal = function() { document.getElementById('quote-modal').classList.add('hidden'); }
+        window.closeQuoteModal = function() {
+            document.getElementById('quote-modal').classList.add('hidden');
+        }
         window.saveQuote = function() {
             const text = document.getElementById('quote-input').value.trim();
             if(text) {
                 customQuoteData = { date: new Date().toDateString(), text: text };
                 localStorage.setItem('hatban_quote', JSON.stringify(customQuoteData));
             }
-            window.setDailyQuote(); window.closeQuoteModal();
+            window.setDailyQuote();
+            window.closeQuoteModal();
         }
 
         window.applyProfile = function() {
@@ -1122,7 +1126,9 @@
             document.getElementById('profile-emoji-input').value = customProfile.emoji;
             document.getElementById('profile-modal').classList.remove('hidden');
         }
-        window.closeProfileModal = function() { document.getElementById('profile-modal').classList.add('hidden'); }
+        window.closeProfileModal = function() {
+            document.getElementById('profile-modal').classList.add('hidden');
+        }
         window.saveProfile = function() {
             const title = document.getElementById('profile-title-input').value.trim() || '햇반이네';
             const emoji = document.getElementById('profile-emoji-input').value.trim();
@@ -1141,9 +1147,11 @@
             
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 if(btn.dataset.target === tabId) {
-                    btn.classList.add('active-tab'); btn.classList.remove('text-gray-400');
+                    btn.classList.add('active-tab');
+                    btn.classList.remove('text-gray-400');
                 } else {
-                    btn.classList.remove('active-tab'); btn.classList.add('text-gray-400');
+                    btn.classList.remove('active-tab');
+                    btn.classList.add('text-gray-400');
                 }
             });
             if(tabId === 'tab-notebook') renderTimetable();
@@ -1240,13 +1248,20 @@
             editingMemoId = id;
             if (id) {
                 const memo = memos.find(m => m.id === id);
-                if(memo) { document.getElementById('memo-input').value = memo.text; window.selectMemoColor(memo.color); }
+                if(memo) {
+                    document.getElementById('memo-input').value = memo.text;
+                    window.selectMemoColor(memo.color);
+                }
             } else {
-                document.getElementById('memo-input').value = ''; window.selectMemoColor('bg-pastel-yellow');
+                document.getElementById('memo-input').value = '';
+                window.selectMemoColor('bg-pastel-yellow');
             }
             document.getElementById('memo-modal').classList.remove('hidden');
         }
-        window.closeMemoModal = function() { document.getElementById('memo-modal').classList.add('hidden'); editingMemoId = null; }
+        window.closeMemoModal = function() {
+            document.getElementById('memo-modal').classList.add('hidden');
+            editingMemoId = null;
+        }
         window.selectMemoColor = function(color) {
             window.selectedMemoColor = color;
             document.querySelectorAll('.memo-color-btn').forEach(btn => btn.classList.remove('border-gray-500'));
@@ -1257,10 +1272,17 @@
             if(!text) return customAlert('내용을 입력해주세요!');
             if (editingMemoId) {
                 const idx = memos.findIndex(m => m.id === editingMemoId);
-                if (idx !== -1) { memos[idx].text = text; memos[idx].color = window.selectedMemoColor; }
-            } else memos.push({ id: Date.now().toString(), text: text, color: window.selectedMemoColor });
+                if (idx !== -1) {
+                    memos[idx].text = text;
+                    memos[idx].color = window.selectedMemoColor;
+                }
+            } else {
+                memos.push({ id: Date.now().toString(), text: text, color: window.selectedMemoColor });
+            }
             localStorage.setItem('hatban_memos', JSON.stringify(memos));
-            renderAllMemos(); initSortable(); closeMemoModal();
+            renderAllMemos();
+            initSortable();
+            closeMemoModal();
         }
         window.deleteMemo = async function(id, event) {
             if(event) event.stopPropagation(); 
@@ -1268,7 +1290,8 @@
             if(!confirmed) return;
             memos = memos.filter(m => m.id !== id);
             localStorage.setItem('hatban_memos', JSON.stringify(memos));
-            renderAllMemos(); initSortable();
+            renderAllMemos();
+            initSortable();
         }
 
         // ==========================================
@@ -1687,7 +1710,7 @@
         window.clearDay = async function(day) {
             const confirmed = await customConfirm(`${day}요일 배움공책을 모두 지울까요?`);
             if(!confirmed) return;
-            backupDayData = {}; backupDayName = day;
+            backupDayData = {};
             
             Object.keys(notebookData).forEach(key => {
                 if(key.startsWith(`${day}요일`)) { backupDayData[key] = notebookData[key]; delete notebookData[key]; }
@@ -1954,7 +1977,7 @@
         const svgChar = `<svg viewBox="0 0 100 100" class="w-full h-full drop-shadow"><path d="M20,60 Q20,20 50,25 Q80,20 85,60 Q90,90 50,85 Q10,90 20,60" fill="COLOR_HERE" /><circle cx="35" cy="45" r="5" fill="#555" /><circle cx="65" cy="45" r="5" fill="#555" /><path d="M45,55 Q50,60 55,55" stroke="#555" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
         const fullMatchColors = ['#FFB6C1', '#AEC6CF', '#77DD77', '#FDFD96', '#CFCFC4', '#FFD1DC', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA', '#fca5a5', '#fdba74', '#fcd34d', '#86efac', '#67e8f9', '#93c5fd', '#c4b5fd', '#d8b4fe', '#f9a8d4', '#fda4af', '#f87171', '#fb923c', '#fbbf24', '#4ade80', '#38bdf8'];
         let matchFlipped = [], matchPairs = 0, matchMoves = 0, isMatchLocked = false;
-        let matchMode = 'normal', matchCardCount = 20, matchTimeLimit = 0, matchTimerInt = null;
+        let matchMode = 'normal', matchCardCount = 20, matchTimeLimit = 0;
 
         window.showMatchConfig = function() {
             document.getElementById('match-config-ui').classList.remove('hidden');
@@ -1991,7 +2014,7 @@
                 timeDisplay.classList.remove('hidden');
                 matchTimeLimit = 60; 
                 document.getElementById('game-match-time').innerText = matchTimeLimit;
-                matchTimerInt = safeSetInterval(() => {
+                safeSetInterval(() => {
                     matchTimeLimit--;
                     document.getElementById('game-match-time').innerText = matchTimeLimit;
                     if(matchTimeLimit <= 0) {
@@ -2058,7 +2081,7 @@
         }
 
         // 10-2. 스피드 암산
-        let mathScore = 0, mathTime = 10, mathTimerInt = null, currentMathAns = 0, currentMathInput = "";
+        let mathScore = 0, mathTime = 10, currentMathAns = 0, currentMathInput = "";
         let mathMode = 'mul';
 
         window.showMathConfig = function() {
@@ -2091,7 +2114,7 @@
                 let b = Math.floor(Math.random() * 8) + 2, ans = Math.floor(Math.random() * (Math.floor(999/b) - Math.ceil(100/b) + 1)) + Math.ceil(100/b);
                 currentMathAns = ans; document.getElementById('math-question').innerText = `${b * ans} ÷ ${b} =`;
             }
-            mathTimerInt = safeSetInterval(() => {
+            safeSetInterval(() => {
                 mathTime--; updateMathTimerBar();
                 if(mathTime <= 0) {
                     clearAllIntervals(); 
@@ -2238,7 +2261,7 @@
         }
 
         // 10-4. 10초 맞추기
-        let tenSecStart = 0, tenSecInt = null, tenState = 0; 
+        let tenSecStart = 0, tenState = 0;
         window.initTenSecGame = function() {
             clearAllIntervals(); tenState = 0;
             const btn = document.getElementById('tensec-btn');
@@ -2256,7 +2279,7 @@
                 let display = document.getElementById('tensec-display');
                 display.classList.remove('text-pink-500', 'animate-[jelly_0.5s]');
                 
-                tenSecInt = safeSetInterval(() => {
+                safeSetInterval(() => {
                     let diff = (Date.now() - tenSecStart) / 1000;
                     if(diff <= 5.0) display.innerText = diff.toFixed(2);
                     else display.innerText = "?.??"; 
