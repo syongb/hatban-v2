@@ -877,10 +877,10 @@
             <h2 class="text-2xl mb-6 flex items-center gap-3 font-bold" style="color: var(--theme-text);"><i class="fa-solid fa-pen"></i> 메모 작성 및 수정</h2>
             <textarea id="memo-input" rows="4" class="w-full bg-gray-100 border-2 border-gray-200 rounded-2xl p-4 mb-6 text-lg resize-none focus:outline-none font-bold" placeholder="오늘 잊지 말아야 할 것은?"></textarea>
             <div class="flex gap-4 mb-8 justify-center">
-                <div onclick="selectMemoColor('bg-pastel-pink')" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-pink border-4 border-transparent cursor-pointer"></div>
-                <div onclick="selectMemoColor('bg-pastel-blue')" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-blue border-4 border-transparent cursor-pointer"></div>
-                <div onclick="selectMemoColor('bg-pastel-green')" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-green border-4 border-transparent cursor-pointer"></div>
-                <div onclick="selectMemoColor('bg-pastel-yellow')" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-yellow border-4 border-transparent cursor-pointer"></div>
+                <div onclick="selectMemoColor('bg-pastel-pink', this)" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-pink border-4 border-transparent cursor-pointer"></div>
+                <div onclick="selectMemoColor('bg-pastel-blue', this)" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-blue border-4 border-transparent cursor-pointer"></div>
+                <div onclick="selectMemoColor('bg-pastel-green', this)" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-green border-4 border-transparent cursor-pointer"></div>
+                <div onclick="selectMemoColor('bg-pastel-yellow', this)" class="memo-color-btn w-12 h-12 rounded-full bg-pastel-yellow border-4 border-transparent cursor-pointer"></div>
             </div>
             <div class="flex justify-end gap-3">
                 <button onclick="closeMemoModal()" class="px-6 py-3 bg-gray-200 rounded-xl font-bold text-gray-700">취소</button>
@@ -1282,10 +1282,13 @@
             document.getElementById('memo-modal').classList.add('hidden');
             editingMemoId = null;
         }
-        window.selectMemoColor = function(color) {
+        window.selectMemoColor = function(color, buttonElement = null) {
             window.selectedMemoColor = color;
-            document.querySelectorAll('.memo-color-btn').forEach(btn => btn.classList.remove('border-gray-500'));
-            event.target.classList.add('border-gray-500');
+            const colorButtons = Array.from(document.querySelectorAll('.memo-color-btn'));
+            colorButtons.forEach(btn => btn.classList.remove('border-gray-500'));
+
+            const selectedButton = buttonElement || colorButtons.find(btn => btn.classList.contains(color));
+            if (selectedButton) selectedButton.classList.add('border-gray-500');
         }
         window.saveMemo = function() {
             const text = document.getElementById('memo-input').value.trim();
