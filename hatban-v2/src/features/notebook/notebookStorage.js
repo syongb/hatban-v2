@@ -55,5 +55,19 @@ export function createNotebookStorage(storage = window.localStorage) {
     return { ...entry };
   }
 
-  return { getEntry, hasEntry, saveEntry };
+  function saveEntryWithDrawingFallback(entry, fallbackDrawing) {
+    try {
+      return { drawingSaved: true, entry: saveEntry(entry), drawingError: null };
+    } catch (drawingError) {
+      if (entry.drawing === fallbackDrawing) throw drawingError;
+      const fallbackEntry = { ...entry, drawing: fallbackDrawing };
+      return {
+        drawingSaved: false,
+        entry: saveEntry(fallbackEntry),
+        drawingError,
+      };
+    }
+  }
+
+  return { getEntry, hasEntry, saveEntry, saveEntryWithDrawingFallback };
 }

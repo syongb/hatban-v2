@@ -68,3 +68,33 @@ test('서로 다른 공책의 텍스트를 독립적으로 저장하고 복원�
   assert.equal(reloaded.getEntry('2026-09-14:mon:2').text, 'B');
   assert.equal(memoryStorage.snapshot().writes, 2);
 });
+
+test('그림 용량 저장이 실패하면 이전 그림을 유지하고 텍스트를 저장한다', () => {
+  let value = null;
+  const limitedStorage = {
+    getItem() {
+      return value;
+    },
+    setItem(key, nextValue) {
+      if (nextValue.length > 500) {
+        const error = new Error('quota exceeded');
+        error.name = 'QuotaExceededError';
+        throw error;
+      }
+      value = nextValue;
+    },
+  };
+  const repository = createNotebookStorage(limitedStorage);
+  const id = '2026-09-15:tue:3';
+  repository.saveEntry({ id, text: '이전 글', drawing: 'data:image/png;base64,old' });
+
+  const result = repository.saveEntryWithDrawingFallback(
+    { id, text: '새 글', drawing: `data:image/png;base64,${'a'.repeat(1000)}` },
+    'data:image/png;base64,old',
+  );
+
+  assert.equal(result.drawingSaved, false);
+  assert.equal(result.drawingError.name, 'QuotaExceededError');
+  assert.equal(repository.getEntry(id).text, '새 글');
+  assert.equal(repository.getEntry(id).drawing, 'data:image/png;base64,old');
+});

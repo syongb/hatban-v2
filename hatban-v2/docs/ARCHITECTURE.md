@@ -46,18 +46,20 @@ src/services/records/
 
 ### 배움공책
 
-현재 배움공책은 다음 세 책임으로 나뉜다.
+현재 배움공책은 다음 네 책임으로 나뉜다.
 
 ```text
 src/features/notebook/
 ├─ notebookView.js
 ├─ notebookSchedule.js
-└─ notebookStorage.js
+├─ notebookStorage.js
+└─ notebookCanvas.js
 ```
 
 - `notebookView.js`: 선택 상태, 화면 렌더링, 입력과 autosave 연결
 - `notebookSchedule.js`: 월~금 시간표, 수업 시간, 현재 교시와 주간 날짜 계산
 - `notebookStorage.js`: `hatban_v2_notebooks` 읽기·안전 파싱·저장
+- `notebookCanvas.js`: Canvas 크기, Pointer Events, 펜·지우개, Undo, PNG Data URL 추출·복원
 
 저장 데이터는 다음 형태다.
 
@@ -73,7 +75,7 @@ src/features/notebook/
       "subject": "수학",
       "period": 3,
       "text": "오늘 배운 내용",
-      "drawing": null,
+      "drawing": "data:image/png;base64,... 또는 null",
       "createdAt": "ISO 날짜",
       "updatedAt": "ISO 날짜"
     }
@@ -81,8 +83,14 @@ src/features/notebook/
 }
 ```
 
-공책 ID에 날짜·요일·교시를 사용하므로 같은 과목이 하루에 여러 번 있어도 분리되며, 주가 바뀌면 새 기록이 된다. `drawing`은 현재 `null`이지만 다음 Canvas 단계에서 같은 항목에 그림 데이터를 연결할 수 있다.
+공책 ID에 날짜·요일·교시를 사용하므로 같은 과목이 하루에 여러 번 있어도 분리되며, 주가 바뀌면 새 기록이 된다. 텍스트와 그림은 한 entry에 함께 저장된다. 빈 Canvas는 큰 이미지를 만들지 않고 `drawing: null`을 유지한다. 모든 픽셀이 지워진 경우도 다음 저장 때 `null`이 된다.
 
-텍스트 입력은 700ms debounce로 저장한다. 과목이나 앱 화면을 바꾸거나 페이지가 종료될 때 대기 중인 기록은 즉시 저장한다. `main.js`는 화면 모듈이 반환한 선택적 `destroy()`를 다음 화면 렌더 전에 호출한다.
+텍스트 입력과 완료된 Canvas stroke는 같은 700ms debounce로 저장한다. `pointermove`마다 이미지를 만들지 않는다. 과목이나 앱 화면을 바꾸거나 페이지가 종료될 때 대기 중인 기록은 즉시 저장한다. `main.js`는 화면 모듈이 반환한 선택적 `destroy()`를 다음 화면 렌더 전에 호출한다.
 
-다음 단계에서는 이 폴더에 `drawingCanvas.js`와 `shareNotebook.js`를 추가한다. Canvas 입력, PNG 생성, 공유는 텍스트 저장과 한 파일에 섞지 않는다. `shareNotebook.js`는 Web Share API 지원 여부를 확인하고 지원되지 않으면 PNG 다운로드를 사용한다.
+Canvas는 `pointerdown`부터 `pointerup`/`pointercancel`까지를 한 stroke로 처리한다. stroke 시작 전 PNG snapshot 하나를 Undo history에 넣고 최근 25개만 메모리에 유지한다. 지우개는 흰색을 칠하지 않고 `destination-out` compositing으로 투명하게 지운다.
+
+Canvas CSS 크기와 bitmap 크기를 함께 맞추며 `devicePixelRatio`를 최대 2까지 반영한다. `ResizeObserver`가 화면 크기 변화를 감지하고, 크기를 바꾸기 전에 현재 bitmap을 임시 Canvas에 복사한 뒤 새 buffer에 비율을 맞춰 복원한다.
+
+그림은 `canvas.toDataURL('image/png')` 결과로 저장한다. 그림 데이터 때문에 localStorage 저장이 실패하면 새 그림은 저장되지 않았음을 화면에 표시하고, 이전 그림을 유지한 작은 entry로 다시 저장해 새 텍스트가 함께 사라지는 것을 막는다.
+
+다음 단계에서 PNG 다운로드와 공유를 구현할 때 `shareNotebook.js`를 추가한다. 이 모듈은 Web Share API 지원 여부를 확인하고 지원되지 않으면 일반 PNG 다운로드를 사용한다.

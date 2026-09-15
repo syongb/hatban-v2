@@ -7,6 +7,7 @@ import {
   getDateForWeekday,
   getScheduleSlot,
 } from './notebookSchedule.js';
+import { createNotebookCanvas } from './notebookCanvas.js';
 import { createNotebookStorage } from './notebookStorage.js';
 
 const AUTOSAVE_DELAY = 700;
@@ -34,7 +35,8 @@ export function renderNotebookView() {
   let selectedDayId = initialSelection.dayId;
   let selectedPeriod = initialSelection.period;
   let saveTimer = null;
-  let isDirty = false;
+  let textDirty = false;
+  let drawingDirty = false;
 
   const element = createView(`
     <section class="screen" aria-labelledby="notebook-title">
@@ -44,7 +46,7 @@ export function renderNotebookView() {
           <h1 id="notebook-title">배움공책 <span aria-hidden="true">✏️</span></h1>
           <p>시간표에서 수업을 고르고 자유롭게 기록해 보세요. 작성한 내용은 이 기기에 자동으로 저장돼요.</p>
         </div>
-        <span class="status-pill">텍스트 공책 사용 가능</span>
+        <span class="status-pill">텍스트 + 필기 공책</span>
       </div>
 
       <div class="notebook-workspace">
@@ -94,6 +96,89 @@ export function renderNotebookView() {
             <span>입력을 멈추면 잠시 후 자동 저장돼요.</span>
             <span class="character-count">0 / 20,000</span>
           </div>
+
+          <section class="drawing-workspace" aria-labelledby="drawing-title">
+            <div class="drawing-workspace__heading">
+              <div>
+                <span class="card-label">그림/필기 공책</span>
+                <h3 id="drawing-title">손가락이나 펜으로 표현해요</h3>
+              </div>
+              <span class="pointer-badge">Pointer 입력</span>
+            </div>
+
+            <div class="drawing-toolbar" aria-label="필기 도구">
+              <div class="drawing-tool-group" aria-label="도구 선택">
+                <span class="drawing-tool-label">도구</span>
+                <button type="button" class="drawing-tool-button is-active" data-drawing-tool="pen" aria-pressed="true">
+                  <span aria-hidden="true">✏️</span> 펜
+                </button>
+                <button type="button" class="drawing-tool-button" data-drawing-tool="eraser" aria-pressed="false">
+                  <span aria-hidden="true">🧽</span> 지우개
+                </button>
+              </div>
+
+              <div class="drawing-tool-group" aria-label="펜 색상 선택">
+                <span class="drawing-tool-label">색상</span>
+                ${[
+                  ['#1f2937', '검정'],
+                  ['#ef4444', '빨강'],
+                  ['#3b82f6', '파랑'],
+                  ['#16a34a', '초록'],
+                ]
+                  .map(
+                    ([color, label], index) => `
+                      <button
+                        type="button"
+                        class="color-swatch${index === 0 ? ' is-active' : ''}"
+                        data-drawing-color="${color}"
+                        aria-label="${label} 펜"
+                        aria-pressed="${index === 0}"
+                        style="--swatch-color: ${color}"
+                      ></button>
+                    `,
+                  )
+                  .join('')}
+              </div>
+
+              <div class="drawing-tool-group" aria-label="펜 굵기 선택">
+                <span class="drawing-tool-label">굵기</span>
+                ${[
+                  [2, '얇게'],
+                  [4, '보통'],
+                  [8, '굵게'],
+                ]
+                  .map(
+                    ([size, label]) => `
+                      <button
+                        type="button"
+                        class="size-button${size === 4 ? ' is-active' : ''}"
+                        data-drawing-size="${size}"
+                        aria-label="${label} ${size}px"
+                        aria-pressed="${size === 4}"
+                      >
+                        <span style="--preview-size: ${size}px" aria-hidden="true"></span>
+                        ${label}
+                      </button>
+                    `,
+                  )
+                  .join('')}
+              </div>
+
+              <button type="button" class="undo-button" data-drawing-action="undo" disabled>
+                <span aria-hidden="true">↶</span> 실행 취소
+              </button>
+            </div>
+
+            <div class="notebook-canvas-frame">
+              <canvas
+                id="notebook-canvas"
+                class="notebook-canvas"
+                data-tool="pen"
+                aria-label="그림과 필기를 입력하는 캔버스"
+              ></canvas>
+            </div>
+            <p class="canvas-help">이 영역 안에서는 화면이 움직이지 않아요. 바깥에서는 평소처럼 스크롤할 수 있어요.</p>
+          </section>
         </article>
       </div>
     </section>
@@ -108,6 +193,22 @@ export function renderNotebookView() {
   const saveStateText = element.querySelector('.save-state__text');
   const characterCount = element.querySelector('.character-count');
   const todayMarker = element.querySelector('.today-marker');
+  const canvas = element.querySelector('#notebook-canvas');
+  const undoButton = element.querySelector('[data-drawing-action="undo"]');
+  let activeDrawingTool = 'pen';
+  let activeDrawingColor = '#1f2937';
+  let activeDrawingSize = 4;
+
+  const canvasController = createNotebookCanvas({
+    canvas,
+    onDrawingChange() {
+      drawingDirty = true;
+      scheduleSave();
+    },
+    onHistoryChange(canUndo) {
+      undoButton.disabled = !canUndo;
+    },
+  });
 
   function currentEntryId() {
     return createEntryId(selectedDayId, selectedPeriod);
@@ -120,6 +221,24 @@ export function renderNotebookView() {
 
   function updateCharacterCount() {
     characterCount.textContent = `${textarea.value.length.toLocaleString('ko-KR')} / 20,000`;
+  }
+
+  function renderDrawingToolState() {
+    element.querySelectorAll('[data-drawing-tool]').forEach((button) => {
+      const isActive = button.dataset.drawingTool === activeDrawingTool;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
+    element.querySelectorAll('[data-drawing-color]').forEach((button) => {
+      const isActive = button.dataset.drawingColor === activeDrawingColor;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
+    element.querySelectorAll('[data-drawing-size]').forEach((button) => {
+      const isActive = Number(button.dataset.drawingSize) === activeDrawingSize;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
   }
 
   function renderWeekdayTabs() {
@@ -182,13 +301,15 @@ export function renderNotebookView() {
     selectedSubject.textContent = slot.subject;
     selectedPeriodText.textContent = `${slot.period}교시 · ${slot.time.start}–${slot.time.end}`;
     textarea.value = typeof entry?.text === 'string' ? entry.text : '';
-    isDirty = false;
+    textDirty = false;
+    drawingDirty = false;
+    void canvasController.loadDrawing(typeof entry?.drawing === 'string' ? entry.drawing : null);
     updateCharacterCount();
     setSaveState('saved', entry ? '저장된 내용 불러옴' : '새 공책');
   }
 
   function saveCurrentNotebook() {
-    if (!isDirty) return;
+    if (!textDirty && !drawingDirty) return;
     window.clearTimeout(saveTimer);
     saveTimer = null;
 
@@ -196,9 +317,20 @@ export function renderNotebookView() {
     const id = currentEntryId();
     const existingEntry = storage.getEntry(id);
     const now = new Date().toISOString();
+    const previousDrawing = existingEntry?.drawing ?? null;
+    let nextDrawing = previousDrawing;
+    let drawingReadError = null;
+
+    if (drawingDirty) {
+      try {
+        nextDrawing = canvasController.getDrawingData();
+      } catch (error) {
+        drawingReadError = error;
+      }
+    }
 
     try {
-      storage.saveEntry({
+      const nextEntry = {
         ...existingEntry,
         id,
         date: getDateForWeekday(selectedDayId),
@@ -207,12 +339,30 @@ export function renderNotebookView() {
         subject: slot.subject,
         period: slot.period,
         text: textarea.value,
-        drawing: existingEntry?.drawing ?? null,
+        drawing: nextDrawing,
         createdAt: existingEntry?.createdAt || now,
         updatedAt: now,
-      });
-      isDirty = false;
-      setSaveState('saved', '저장됨');
+      };
+      let saveResult;
+
+      if (drawingDirty && !drawingReadError) {
+        saveResult = storage.saveEntryWithDrawingFallback(nextEntry, previousDrawing);
+      } else {
+        saveResult = {
+          drawingSaved: !drawingReadError,
+          drawingError: drawingReadError,
+          entry: storage.saveEntry({ ...nextEntry, drawing: previousDrawing }),
+        };
+      }
+
+      textDirty = false;
+      drawingDirty = false;
+      if (saveResult.drawingSaved) {
+        setSaveState('saved', '텍스트와 그림 저장됨');
+      } else {
+        console.warn('[햇반이네] 그림 용량 때문에 이전 그림을 유지하고 텍스트만 저장했습니다.', saveResult.drawingError);
+        setSaveState('warning', '그림 저장 실패 · 글은 저장됨');
+      }
       renderSchedule();
     } catch (error) {
       console.warn('[햇반이네] 배움공책을 저장하지 못했습니다.', error);
@@ -221,7 +371,6 @@ export function renderNotebookView() {
   }
 
   function scheduleSave() {
-    isDirty = true;
     setSaveState('pending', '저장 대기 중');
     window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(saveCurrentNotebook, AUTOSAVE_DELAY);
@@ -238,6 +387,38 @@ export function renderNotebookView() {
   }
 
   function handleClick(event) {
+    const toolButton = event.target.closest('[data-drawing-tool]');
+    if (toolButton) {
+      activeDrawingTool = toolButton.dataset.drawingTool;
+      canvasController.setTool(activeDrawingTool);
+      renderDrawingToolState();
+      return;
+    }
+
+    const colorButton = event.target.closest('[data-drawing-color]');
+    if (colorButton) {
+      activeDrawingColor = colorButton.dataset.drawingColor;
+      activeDrawingTool = 'pen';
+      canvasController.setColor(activeDrawingColor);
+      canvasController.setTool('pen');
+      renderDrawingToolState();
+      return;
+    }
+
+    const sizeButton = event.target.closest('[data-drawing-size]');
+    if (sizeButton) {
+      activeDrawingSize = Number(sizeButton.dataset.drawingSize);
+      canvasController.setSize(activeDrawingSize);
+      renderDrawingToolState();
+      return;
+    }
+
+    const drawingAction = event.target.closest('[data-drawing-action]');
+    if (drawingAction?.dataset.drawingAction === 'undo') {
+      void canvasController.undo();
+      return;
+    }
+
     const dayButton = event.target.closest('[data-day-id]');
     if (dayButton) {
       const day = WEEKDAYS.find((item) => item.id === dayButton.dataset.dayId);
@@ -252,6 +433,7 @@ export function renderNotebookView() {
 
   function handleInput() {
     updateCharacterCount();
+    textDirty = true;
     scheduleSave();
   }
 
@@ -265,6 +447,7 @@ export function renderNotebookView() {
 
   renderWeekdayTabs();
   renderSchedule();
+  renderDrawingToolState();
   loadSelectedNotebook();
 
   return {
@@ -273,6 +456,7 @@ export function renderNotebookView() {
       saveCurrentNotebook();
       window.clearTimeout(saveTimer);
       window.removeEventListener('pagehide', handlePageHide);
+      canvasController.destroy();
     },
   };
 }
