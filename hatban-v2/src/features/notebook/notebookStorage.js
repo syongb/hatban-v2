@@ -37,6 +37,13 @@ export function createNotebookStorage(storage = window.localStorage) {
     return isRecord(store.entries[entryId]);
   }
 
+  function getAllEntries() {
+    return Object.entries(store.entries).flatMap(([entryId, entry]) => {
+      if (!isRecord(entry)) return [];
+      return [{ ...entry, id: typeof entry.id === 'string' ? entry.id : entryId }];
+    });
+  }
+
   function saveEntry(entry) {
     if (!isRecord(entry) || typeof entry.id !== 'string') {
       throw new TypeError('저장할 배움공책 항목에 id가 필요합니다.');
@@ -69,5 +76,5 @@ export function createNotebookStorage(storage = window.localStorage) {
     }
   }
 
-  return { getEntry, hasEntry, saveEntry, saveEntryWithDrawingFallback };
+  return { getAllEntries, getEntry, hasEntry, saveEntry, saveEntryWithDrawingFallback };
 }

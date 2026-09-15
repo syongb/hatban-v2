@@ -46,7 +46,7 @@ src/services/records/
 
 ### 배움공책
 
-현재 배움공책은 다음 다섯 책임으로 나뉜다.
+현재 배움공책은 다음 여섯 책임으로 나뉜다.
 
 ```text
 src/features/notebook/
@@ -54,7 +54,8 @@ src/features/notebook/
 ├─ notebookSchedule.js
 ├─ notebookStorage.js
 ├─ notebookCanvas.js
-└─ notebookExport.js
+├─ notebookExport.js
+└─ notebookHistory.js
 ```
 
 - `notebookView.js`: 선택 상태, 화면 렌더링, 입력과 autosave 연결
@@ -62,6 +63,7 @@ src/features/notebook/
 - `notebookStorage.js`: `hatban_v2_notebooks` 읽기·안전 파싱·저장
 - `notebookCanvas.js`: Canvas 크기, Pointer Events, 펜·지우개, Undo, PNG Data URL 추출·복원
 - `notebookExport.js`: 출력용 Canvas 합성, 한글 줄바꿈, 파일명 정리, PNG Blob 생성, 공유·다운로드 선택
+- `notebookHistory.js`: 저장 항목의 안전한 정규화, 최신순 정렬, 요일·과목 필터, 미리보기 생성
 
 저장 데이터는 다음 형태다.
 
@@ -99,4 +101,8 @@ Canvas CSS 크기와 bitmap 크기를 함께 맞추며 `devicePixelRatio`를 최
 
 출력 Canvas는 PNG Blob으로만 만들며 localStorage에는 다시 저장하지 않는다. 안전한 날짜·교시·과목 파일명을 만들고, `navigator.share`와 `navigator.canShare`가 PNG `File` 공유를 지원하면 시스템 공유창을 사용한다. 지원하지 않거나 공유 오류가 발생하면 임시 object URL을 이용해 다운로드한다. `AbortError`는 사용자가 취소한 정상 흐름으로 처리하며 다운로드나 오류 안내를 강제하지 않는다.
 
-다음 배움공책 단계에서는 전체·요일별·과목별 모아보기를 구현한다. 서버 기능이 시작되기 전까지 PNG는 기기에서 즉시 생성하며 별도로 보관하지 않는다.
+모아보기는 `notebookStorage.js`의 `getAllEntries()`만 통해 저장 항목을 읽는다. `notebookHistory.js`는 일부 필드가 빠진 항목을 안전한 기본값으로 정리하고, 식별자·날짜·교시가 심하게 손상된 항목은 건너뛴다. 목록은 날짜 내림차순, 같은 날짜에서는 교시 오름차순이며 과목 목록은 실제 저장된 항목에서만 만든다.
+
+과거 공책을 열면 화면은 entry의 기존 `id`, `date`, `dayId`, `subject`, `period`을 편집 대상으로 고정한다. 따라서 수정과 PNG 내보내기가 현재 시간표 날짜가 아니라 과거 entry 자체에 적용된다. 모아보기는 drawing 이미지를 미리 디코딩하지 않고 존재 여부만 표시한다.
+
+다음 배움공책 단계에서는 기록 삭제와 전체·요일·과목별 추가 정리 기능을 검토한다. 서버 기능이 시작되기 전까지 PNG는 기기에서 즉시 생성하며 별도로 보관하지 않는다.

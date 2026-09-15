@@ -69,6 +69,23 @@ test('서로 다른 공책의 텍스트를 독립적으로 저장하고 복원�
   assert.equal(memoryStorage.snapshot().writes, 2);
 });
 
+test('전체 기록을 안전하게 읽고 id가 누락된 항목은 저장 키를 사용한다', () => {
+  const memoryStorage = createMemoryStorage(
+    JSON.stringify({
+      version: 1,
+      entries: {
+        '2026-09-15:tue:3': { subject: '수학', text: '분수' },
+        broken: 'not an entry',
+      },
+    }),
+  );
+  const repository = createNotebookStorage(memoryStorage);
+
+  assert.deepEqual(repository.getAllEntries(), [
+    { id: '2026-09-15:tue:3', subject: '수학', text: '분수' },
+  ]);
+});
+
 test('그림 용량 저장이 실패하면 이전 그림을 유지하고 텍스트를 저장한다', () => {
   let value = null;
   const limitedStorage = {

@@ -9,6 +9,12 @@ import {
 } from './notebookSchedule.js';
 import { createNotebookCanvas } from './notebookCanvas.js';
 import { createNotebookPng, shareOrDownloadNotebook } from './notebookExport.js';
+import {
+  createNotebookHistory,
+  filterNotebookHistory,
+  getHistorySubjects,
+  normalizeNotebookHistoryEntry,
+} from './notebookHistory.js';
 import { createNotebookStorage } from './notebookStorage.js';
 
 const AUTOSAVE_DELAY = 700;
@@ -20,6 +26,24 @@ function formatDisplayDate(dateString) {
     day: 'numeric',
     weekday: 'short',
   }).format(new Date(year, month - 1, day));
+}
+
+function formatHistoryDate(dateString) {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  }).format(new Date(year, month - 1, day));
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function getInitialSelection() {
@@ -35,6 +59,10 @@ export function renderNotebookView() {
   const initialSelection = getInitialSelection();
   let selectedDayId = initialSelection.dayId;
   let selectedPeriod = initialSelection.period;
+  let writingSelection = { ...initialSelection };
+  let openedHistoryEntryId = null;
+  let notebookMode = 'write';
+  let historyFilters = { dayId: 'all', subject: 'all' };
   let saveTimer = null;
   let textDirty = false;
   let drawingDirty = false;
@@ -48,6 +76,15 @@ export function renderNotebookView() {
           <p>시간표에서 수업을 고르고 자유롭게 기록해 보세요. 작성한 내용은 이 기기에 자동으로 저장돼요.</p>
         </div>
         <span class="status-pill">텍스트 + 필기 공책</span>
+      </div>
+
+      <div class="notebook-mode-tabs" role="tablist" aria-label="배움공책 화면 선택">
+        <button type="button" class="notebook-mode-tab is-active" data-notebook-mode="write" role="tab" aria-selected="true">
+          <span aria-hidden="true">✏️</span> 공책 쓰기
+        </button>
+        <button type="button" class="notebook-mode-tab" data-notebook-mode="history" role="tab" aria-selected="false">
+          <span aria-hidden="true">📚</span> 지난 배움공책
+        </button>
       </div>
 
       <div class="notebook-workspace">
@@ -74,6 +111,13 @@ export function renderNotebookView() {
         </aside>
 
         <article class="notebook-editor-card">
+          <div class="history-editing-banner" hidden>
+            <div>
+              <span class="card-label">지난 배움공책</span>
+              <strong class="history-editing-summary"></strong>
+            </div>
+            <button type="button" class="history-return-button" data-history-action="return">지난 배움공책으로 돌아가기</button>
+          </div>
           <div class="notebook-editor-card__header">
             <div>
               <span class="card-label selected-date"></span>
@@ -194,9 +238,39 @@ export function renderNotebookView() {
           </section>
         </article>
       </div>
+
+      <section class="notebook-history-panel" aria-labelledby="notebook-history-title" hidden>
+        <div class="notebook-history-panel__heading">
+          <div>
+            <span class="eyebrow">날짜가 지나도 이어지는 배움</span>
+            <h2 id="notebook-history-title">지난 배움공책</h2>
+            <p>기록을 누르면 그때의 글과 그림을 다시 열어 수정할 수 있어요.</p>
+          </div>
+          <span class="history-count"></span>
+        </div>
+
+        <div class="history-filter-section">
+          <span class="history-filter-label">요일</span>
+          <div class="history-filter-chips history-day-filters" aria-label="요일별 기록 필터"></div>
+        </div>
+        <div class="history-filter-section">
+          <span class="history-filter-label">과목</span>
+          <div class="history-filter-chips history-subject-filters" aria-label="과목별 기록 필터"></div>
+        </div>
+        <div class="notebook-history-list" aria-live="polite"></div>
+      </section>
     </section>
   `);
 
+  const workspace = element.querySelector('.notebook-workspace');
+  const timetablePanel = element.querySelector('.timetable-panel');
+  const historyPanel = element.querySelector('.notebook-history-panel');
+  const historyDayFilters = element.querySelector('.history-day-filters');
+  const historySubjectFilters = element.querySelector('.history-subject-filters');
+  const historyList = element.querySelector('.notebook-history-list');
+  const historyCount = element.querySelector('.history-count');
+  const historyEditingBanner = element.querySelector('.history-editing-banner');
+  const historyEditingSummary = element.querySelector('.history-editing-summary');
   const scheduleList = element.querySelector('.schedule-list');
   const textarea = element.querySelector('#notebook-text');
   const selectedDate = element.querySelector('.selected-date');
@@ -228,7 +302,36 @@ export function renderNotebookView() {
   });
 
   function currentEntryId() {
-    return createEntryId(selectedDayId, selectedPeriod);
+    return openedHistoryEntryId || createEntryId(selectedDayId, selectedPeriod);
+  }
+
+  function getNotebookContext() {
+    if (openedHistoryEntryId) {
+      const entry = storage.getEntry(openedHistoryEntryId);
+      const historyEntry = normalizeNotebookHistoryEntry(entry, openedHistoryEntryId);
+      if (historyEntry) {
+        const scheduleSlot = historyEntry.dayId ? getScheduleSlot(historyEntry.dayId, historyEntry.period) : null;
+        return {
+          ...historyEntry,
+          isHistory: true,
+          time: scheduleSlot?.time ?? null,
+        };
+      }
+      console.warn('[햇반이네] 이전 배움공책 정보를 읽지 못해 이번 주 공책으로 돌아갑니다.');
+      openedHistoryEntryId = null;
+    }
+
+    const slot = getScheduleSlot(selectedDayId, selectedPeriod);
+    return {
+      id: createEntryId(selectedDayId, selectedPeriod),
+      date: getDateForWeekday(selectedDayId),
+      dayId: selectedDayId,
+      day: slot.day.label,
+      subject: slot.subject,
+      period: slot.period,
+      time: slot.time,
+      isHistory: false,
+    };
   }
 
   function setSaveState(state, message) {
@@ -309,14 +412,104 @@ export function renderNotebookView() {
       .join('');
   }
 
-  function loadSelectedNotebook() {
-    const slot = getScheduleSlot(selectedDayId, selectedPeriod);
-    const date = getDateForWeekday(selectedDayId);
-    const entry = storage.getEntry(currentEntryId());
+  function renderHistory() {
+    const allEntries = createNotebookHistory(storage.getAllEntries());
+    const subjects = getHistorySubjects(allEntries);
+    if (historyFilters.subject !== 'all' && !subjects.includes(historyFilters.subject)) {
+      historyFilters.subject = 'all';
+    }
+    const filteredEntries = filterNotebookHistory(allEntries, historyFilters);
 
-    selectedDate.textContent = `${slot.day.label} · ${formatDisplayDate(date)}`;
-    selectedSubject.textContent = slot.subject;
-    selectedPeriodText.textContent = `${slot.period}교시 · ${slot.time.start}–${slot.time.end}`;
+    historyDayFilters.innerHTML = [
+      ['all', '전체'],
+      ...WEEKDAYS.map((day) => [day.id, day.shortLabel]),
+    ]
+      .map(
+        ([dayId, label]) => `
+          <button type="button" class="history-filter-chip${historyFilters.dayId === dayId ? ' is-active' : ''}" data-history-day="${dayId}" aria-pressed="${historyFilters.dayId === dayId}">
+            ${label}
+          </button>
+        `,
+      )
+      .join('');
+
+    historySubjectFilters.innerHTML = [
+      ['all', '전체'],
+      ...subjects.map((subject) => [subject, subject]),
+    ]
+      .map(
+        ([subject, label]) => `
+          <button type="button" class="history-filter-chip${historyFilters.subject === subject ? ' is-active' : ''}" data-history-subject="${escapeHtml(subject)}" aria-pressed="${historyFilters.subject === subject}">
+            ${escapeHtml(label)}
+          </button>
+        `,
+      )
+      .join('');
+
+    historyCount.textContent = allEntries.length ? `${allEntries.length}개의 기록` : '';
+    if (allEntries.length === 0) {
+      historyList.innerHTML = `
+        <div class="history-empty-state">
+          <span aria-hidden="true">📖</span>
+          <strong>아직 저장된 배움공책이 없어요.</strong>
+          <p>공책 쓰기에서 글이나 그림을 작성하면 이곳에 차곡차곡 모여요.</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (filteredEntries.length === 0) {
+      historyList.innerHTML = `
+        <div class="history-empty-state">
+          <span aria-hidden="true">🔎</span>
+          <strong>이 조건에 맞는 배움공책이 없어요.</strong>
+          <p>다른 요일이나 과목을 선택해 보세요.</p>
+        </div>
+      `;
+      return;
+    }
+
+    historyList.innerHTML = filteredEntries
+      .map(
+        (entry) => `
+          <button type="button" class="history-entry-card" data-history-entry-id="${escapeHtml(entry.id)}">
+            <span class="history-entry-card__date">${escapeHtml(formatHistoryDate(entry.date))}</span>
+            <strong class="history-entry-card__subject">${entry.period}교시 · ${escapeHtml(entry.subject)}</strong>
+            <span class="history-entry-card__preview">${escapeHtml(entry.preview)}</span>
+            <span class="history-entry-card__meta">${entry.hasDrawing ? '✏️ 그림 있음' : '📝 텍스트 기록'}</span>
+          </button>
+        `,
+      )
+      .join('');
+  }
+
+  function renderNotebookMode() {
+    const isHistoryMode = notebookMode === 'history';
+    workspace.hidden = isHistoryMode;
+    historyPanel.hidden = !isHistoryMode;
+    workspace.classList.toggle('is-history-editing', Boolean(openedHistoryEntryId));
+    timetablePanel.hidden = Boolean(openedHistoryEntryId);
+    historyEditingBanner.hidden = !openedHistoryEntryId;
+    element.querySelectorAll('[data-notebook-mode]').forEach((button) => {
+      const isSelected = button.dataset.notebookMode === notebookMode;
+      button.classList.toggle('is-active', isSelected);
+      button.setAttribute('aria-selected', String(isSelected));
+    });
+    if (isHistoryMode) renderHistory();
+  }
+
+  function loadSelectedNotebook() {
+    const context = getNotebookContext();
+    const entry = storage.getEntry(context.id);
+
+    selectedDate.textContent = context.isHistory
+      ? `지난 배움공책 · ${formatHistoryDate(context.date)}`
+      : `${context.day} · ${formatDisplayDate(context.date)}`;
+    selectedSubject.textContent = context.subject;
+    selectedPeriodText.textContent = `${context.period}교시${context.time ? ` · ${context.time.start}–${context.time.end}` : ''}`;
+    if (context.isHistory) {
+      historyEditingSummary.textContent = `${formatHistoryDate(context.date)} · ${context.period}교시 · ${context.subject}`;
+    }
     textarea.value = typeof entry?.text === 'string' ? entry.text : '';
     textDirty = false;
     drawingDirty = false;
@@ -332,8 +525,8 @@ export function renderNotebookView() {
     window.clearTimeout(saveTimer);
     saveTimer = null;
 
-    const slot = getScheduleSlot(selectedDayId, selectedPeriod);
-    const id = currentEntryId();
+    const context = getNotebookContext();
+    const id = context.id;
     const existingEntry = storage.getEntry(id);
     const now = new Date().toISOString();
     const previousDrawing = existingEntry?.drawing ?? null;
@@ -352,11 +545,11 @@ export function renderNotebookView() {
       const nextEntry = {
         ...existingEntry,
         id,
-        date: getDateForWeekday(selectedDayId),
-        dayId: selectedDayId,
-        day: slot.day.label,
-        subject: slot.subject,
-        period: slot.period,
+        date: context.date,
+        dayId: context.dayId,
+        day: context.day,
+        subject: context.subject,
+        period: context.period,
         text: textarea.value,
         drawing: nextDrawing,
         createdAt: existingEntry?.createdAt || now,
@@ -383,6 +576,7 @@ export function renderNotebookView() {
         setSaveState('warning', '그림 저장 실패 · 글은 저장됨');
       }
       renderSchedule();
+      if (notebookMode === 'history') renderHistory();
     } catch (error) {
       console.warn('[햇반이네] 배움공책을 저장하지 못했습니다.', error);
       setSaveState('error', '저장하지 못했어요');
@@ -400,14 +594,86 @@ export function renderNotebookView() {
   function selectNotebook(dayId, period) {
     if (dayId === selectedDayId && period === selectedPeriod) return;
     saveCurrentNotebook();
+    openedHistoryEntryId = null;
     selectedDayId = dayId;
     selectedPeriod = period;
+    writingSelection = { dayId, period };
     renderWeekdayTabs();
     renderSchedule();
     loadSelectedNotebook();
   }
 
+  function openHistoryEntry(entryId) {
+    const entry = normalizeNotebookHistoryEntry(storage.getEntry(entryId), entryId);
+    if (!entry) {
+      console.warn('[햇반이네] 선택한 이전 배움공책을 열지 못했습니다.');
+      return;
+    }
+    saveCurrentNotebook();
+    openedHistoryEntryId = entry.id;
+    notebookMode = 'write';
+    renderNotebookMode();
+    loadSelectedNotebook();
+  }
+
+  function returnToHistory() {
+    saveCurrentNotebook();
+    openedHistoryEntryId = null;
+    notebookMode = 'history';
+    renderNotebookMode();
+  }
+
+  function showWritingNotebook() {
+    saveCurrentNotebook();
+    openedHistoryEntryId = null;
+    selectedDayId = writingSelection.dayId;
+    selectedPeriod = writingSelection.period;
+    notebookMode = 'write';
+    renderWeekdayTabs();
+    renderSchedule();
+    renderNotebookMode();
+    loadSelectedNotebook();
+  }
+
   function handleClick(event) {
+    const modeButton = event.target.closest('[data-notebook-mode]');
+    if (modeButton) {
+      if (modeButton.dataset.notebookMode === 'history') {
+        saveCurrentNotebook();
+        notebookMode = 'history';
+        renderNotebookMode();
+      } else {
+        showWritingNotebook();
+      }
+      return;
+    }
+
+    const historyReturnButton = event.target.closest('[data-history-action="return"]');
+    if (historyReturnButton) {
+      returnToHistory();
+      return;
+    }
+
+    const historyEntryButton = event.target.closest('[data-history-entry-id]');
+    if (historyEntryButton) {
+      openHistoryEntry(historyEntryButton.dataset.historyEntryId);
+      return;
+    }
+
+    const historyDayButton = event.target.closest('[data-history-day]');
+    if (historyDayButton) {
+      historyFilters.dayId = historyDayButton.dataset.historyDay;
+      renderHistory();
+      return;
+    }
+
+    const historySubjectButton = event.target.closest('[data-history-subject]');
+    if (historySubjectButton) {
+      historyFilters.subject = historySubjectButton.dataset.historySubject;
+      renderHistory();
+      return;
+    }
+
     const toolButton = event.target.closest('[data-drawing-tool]');
     if (toolButton) {
       activeDrawingTool = toolButton.dataset.drawingTool;
@@ -464,7 +730,7 @@ export function renderNotebookView() {
 
   async function exportCurrentNotebook() {
     if (isExporting) return;
-    const slot = getScheduleSlot(selectedDayId, selectedPeriod);
+    const context = getNotebookContext();
     let drawing;
 
     try {
@@ -491,10 +757,10 @@ export function renderNotebookView() {
 
     try {
       const png = await createNotebookPng({
-        date: getDateForWeekday(selectedDayId),
-        day: slot.day.label,
-        period: slot.period,
-        subject: slot.subject,
+        date: context.date,
+        day: context.day,
+        period: context.period,
+        subject: context.subject,
         text: textarea.value,
         drawing,
       });
@@ -526,6 +792,7 @@ export function renderNotebookView() {
   renderWeekdayTabs();
   renderSchedule();
   renderDrawingToolState();
+  renderNotebookMode();
   loadSelectedNotebook();
 
   return {
