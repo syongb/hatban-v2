@@ -960,6 +960,77 @@ button.schedule-slot:hover {
   line-height: 1.6;
 }
 
+.notebook-export {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px 20px;
+  margin-top: 30px;
+  padding: 22px;
+  border: 2px solid #d8e5ff;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #f3f7ff, #fffdf7);
+}
+
+.notebook-export h3 {
+  margin: 0 0 7px;
+  color: #243b72;
+  font-size: clamp(18px, 2.7vw, 23px);
+}
+
+.notebook-export p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.notebook-export-button {
+  display: inline-flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 17px;
+  background: #345bb6;
+  box-shadow: 0 8px 18px rgba(52, 91, 182, 0.2);
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.notebook-export-button:hover {
+  background: #294a9a;
+  transform: translateY(-1px);
+}
+
+.notebook-export-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+  transform: none;
+}
+
+.notebook-export-status {
+  min-height: 20px;
+  grid-column: 1 / -1;
+}
+
+.notebook-export-status[data-state='success'] {
+  color: #20734c;
+}
+
+.notebook-export-status[data-state='notice'] {
+  color: #a25b12;
+}
+
+.notebook-export-status[data-state='error'] {
+  color: #bd4545;
+}
+
 .character-count {
   flex: 0 0 auto;
   font-variant-numeric: tabular-nums;
@@ -1051,6 +1122,15 @@ button.schedule-slot:hover {
   .undo-button {
     width: 100%;
     margin-left: 0;
+  }
+
+  .notebook-export {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .notebook-export-button {
+    width: 100%;
   }
 }
 

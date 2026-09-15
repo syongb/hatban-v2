@@ -8,6 +8,7 @@ import {
   getScheduleSlot,
 } from './notebookSchedule.js';
 import { createNotebookCanvas } from './notebookCanvas.js';
+import { createNotebookPng, shareOrDownloadNotebook } from './notebookExport.js';
 import { createNotebookStorage } from './notebookStorage.js';
 
 const AUTOSAVE_DELAY = 700;
@@ -179,6 +180,18 @@ export function renderNotebookView() {
             </div>
             <p class="canvas-help">이 영역 안에서는 화면이 움직이지 않아요. 바깥에서는 평소처럼 스크롤할 수 있어요.</p>
           </section>
+
+          <section class="notebook-export" aria-labelledby="notebook-export-title">
+            <div>
+              <h3 id="notebook-export-title">완성한 공책을 제출해요</h3>
+              <p>날짜, 과목, 글과 그림을 한 장의 깔끔한 PNG로 만들어요.</p>
+            </div>
+            <button type="button" class="notebook-export-button">
+              <span aria-hidden="true">🖼️</span>
+              <span class="notebook-export-button__text">이미지로 저장/공유</span>
+            </button>
+            <p class="notebook-export-status" role="status" aria-live="polite"></p>
+          </section>
         </article>
       </div>
     </section>
@@ -195,9 +208,13 @@ export function renderNotebookView() {
   const todayMarker = element.querySelector('.today-marker');
   const canvas = element.querySelector('#notebook-canvas');
   const undoButton = element.querySelector('[data-drawing-action="undo"]');
+  const exportButton = element.querySelector('.notebook-export-button');
+  const exportButtonText = element.querySelector('.notebook-export-button__text');
+  const exportStatus = element.querySelector('.notebook-export-status');
   let activeDrawingTool = 'pen';
   let activeDrawingColor = '#1f2937';
   let activeDrawingSize = 4;
+  let isExporting = false;
 
   const canvasController = createNotebookCanvas({
     canvas,
@@ -305,6 +322,8 @@ export function renderNotebookView() {
     drawingDirty = false;
     void canvasController.loadDrawing(typeof entry?.drawing === 'string' ? entry.drawing : null);
     updateCharacterCount();
+    exportStatus.removeAttribute('data-state');
+    exportStatus.textContent = '';
     setSaveState('saved', entry ? '저장된 내용 불러옴' : '새 공책');
   }
 
@@ -372,6 +391,8 @@ export function renderNotebookView() {
 
   function scheduleSave() {
     setSaveState('pending', '저장 대기 중');
+    exportStatus.removeAttribute('data-state');
+    exportStatus.textContent = '';
     window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(saveCurrentNotebook, AUTOSAVE_DELAY);
   }
@@ -441,8 +462,65 @@ export function renderNotebookView() {
     saveCurrentNotebook();
   }
 
+  async function exportCurrentNotebook() {
+    if (isExporting) return;
+    const slot = getScheduleSlot(selectedDayId, selectedPeriod);
+    let drawing;
+
+    try {
+      drawing = canvasController.getDrawingData();
+    } catch (error) {
+      console.warn('[햇반이네] 내보낼 그림을 읽지 못했습니다.', error);
+      exportStatus.dataset.state = 'error';
+      exportStatus.textContent = '그림을 읽지 못했어요. 잠시 후 다시 시도해 주세요.';
+      return;
+    }
+
+    if (!textarea.value.trim() && !drawing) {
+      exportStatus.dataset.state = 'notice';
+      exportStatus.textContent = '먼저 글이나 그림을 작성해 주세요.';
+      return;
+    }
+
+    isExporting = true;
+    exportButton.disabled = true;
+    exportButton.setAttribute('aria-busy', 'true');
+    exportButtonText.textContent = '이미지 만드는 중...';
+    exportStatus.dataset.state = 'pending';
+    exportStatus.textContent = '제출하기 좋은 이미지로 정리하고 있어요.';
+
+    try {
+      const png = await createNotebookPng({
+        date: getDateForWeekday(selectedDayId),
+        day: slot.day.label,
+        period: slot.period,
+        subject: slot.subject,
+        text: textarea.value,
+        drawing,
+      });
+      const result = await shareOrDownloadNotebook(png);
+      exportStatus.dataset.state = 'success';
+      exportStatus.textContent =
+        result.method === 'shared'
+          ? '공유 메뉴로 보냈어요.'
+          : result.method === 'cancelled'
+            ? '공유를 취소했어요. 공책 내용은 그대로예요.'
+            : 'PNG 파일로 저장했어요.';
+    } catch (error) {
+      console.warn('[햇반이네] 배움공책 이미지를 만들지 못했습니다.', error);
+      exportStatus.dataset.state = 'error';
+      exportStatus.textContent = '이미지를 만들지 못했어요. 잠시 후 다시 시도해 주세요.';
+    } finally {
+      isExporting = false;
+      exportButton.disabled = false;
+      exportButton.removeAttribute('aria-busy');
+      exportButtonText.textContent = '이미지로 저장/공유';
+    }
+  }
+
   element.addEventListener('click', handleClick);
   textarea.addEventListener('input', handleInput);
+  exportButton.addEventListener('click', exportCurrentNotebook);
   window.addEventListener('pagehide', handlePageHide);
 
   renderWeekdayTabs();

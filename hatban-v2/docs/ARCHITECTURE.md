@@ -46,20 +46,22 @@ src/services/records/
 
 ### 배움공책
 
-현재 배움공책은 다음 네 책임으로 나뉜다.
+현재 배움공책은 다음 다섯 책임으로 나뉜다.
 
 ```text
 src/features/notebook/
 ├─ notebookView.js
 ├─ notebookSchedule.js
 ├─ notebookStorage.js
-└─ notebookCanvas.js
+├─ notebookCanvas.js
+└─ notebookExport.js
 ```
 
 - `notebookView.js`: 선택 상태, 화면 렌더링, 입력과 autosave 연결
 - `notebookSchedule.js`: 월~금 시간표, 수업 시간, 현재 교시와 주간 날짜 계산
 - `notebookStorage.js`: `hatban_v2_notebooks` 읽기·안전 파싱·저장
 - `notebookCanvas.js`: Canvas 크기, Pointer Events, 펜·지우개, Undo, PNG Data URL 추출·복원
+- `notebookExport.js`: 출력용 Canvas 합성, 한글 줄바꿈, 파일명 정리, PNG Blob 생성, 공유·다운로드 선택
 
 저장 데이터는 다음 형태다.
 
@@ -93,4 +95,8 @@ Canvas CSS 크기와 bitmap 크기를 함께 맞추며 `devicePixelRatio`를 최
 
 그림은 `canvas.toDataURL('image/png')` 결과로 저장한다. 그림 데이터 때문에 localStorage 저장이 실패하면 새 그림은 저장되지 않았음을 화면에 표시하고, 이전 그림을 유지한 작은 entry로 다시 저장해 새 텍스트가 함께 사라지는 것을 막는다.
 
-다음 단계에서 PNG 다운로드와 공유를 구현할 때 `shareNotebook.js`를 추가한다. 이 모듈은 Web Share API 지원 여부를 확인하고 지원되지 않으면 일반 PNG 다운로드를 사용한다.
+내보내기는 저장 구조를 변경하지 않는다. 현재 화면의 날짜·요일·교시·과목·텍스트·그림을 `notebookExport.js`에 전달해 폭 1600px의 별도 Canvas에 합성한다. 텍스트는 명시적인 줄바꿈을 보존하면서 글자 단위까지 폭을 계산하고, 내용 길이에 맞춰 이미지 높이를 늘린다. drawing은 원본 비율을 유지하고 투명 픽셀 경계를 찾아 불필요한 여백을 줄인다. 최종 배경은 밝은색으로 명시한다.
+
+출력 Canvas는 PNG Blob으로만 만들며 localStorage에는 다시 저장하지 않는다. 안전한 날짜·교시·과목 파일명을 만들고, `navigator.share`와 `navigator.canShare`가 PNG `File` 공유를 지원하면 시스템 공유창을 사용한다. 지원하지 않거나 공유 오류가 발생하면 임시 object URL을 이용해 다운로드한다. `AbortError`는 사용자가 취소한 정상 흐름으로 처리하며 다운로드나 오류 안내를 강제하지 않는다.
+
+다음 배움공책 단계에서는 전체·요일별·과목별 모아보기를 구현한다. 서버 기능이 시작되기 전까지 PNG는 기기에서 즉시 생성하며 별도로 보관하지 않는다.
