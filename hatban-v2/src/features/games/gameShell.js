@@ -1,0 +1,24 @@
+import { baseballResult, checkTicTacToe, createBaseballSecret, createMathQuestion, createPairs, isGomokuWin, tenSecondError } from './gameLogic.js';
+import { createGameRecords } from './gameRecords.js';
+import { mountMatch } from './matchGame.js';
+import { mountMinesweeper } from './minesweeperGame.js';
+import { mountGomoku } from './gomokuGame.js';
+import { mountSudoku } from './sudokuGame.js';
+
+const records = createGameRecords();
+const games = { match:['🧠','짝 맞추기'], math:['⚡','암산 게임'], mine:['💣','지뢰찾기'], tensec:['⏱️','10초 맞추기'], tictactoe:['❌','틱택토'], gomoku:['⚫','오목'], baseball:['⚾','숫자야구'], sudoku:['🔢','스도쿠'] };
+export function gameList(onOpen) { const box=document.createElement('div'); box.className='games-grid'; Object.entries(games).forEach(([id,[icon,name]])=>{const b=document.createElement('button');b.className='game-card';b.textContent=icon+' '+name;b.onclick=()=>onOpen(id);box.append(b);});return box; }
+export function mountGame(id,onBack) {
+ const root=document.createElement('section');root.className='screen game-play';const back=document.createElement('button');back.className='tool-button';back.textContent='← 집중 게임 목록';back.onclick=onBack;root.append(back);const title=document.createElement('h1');title.textContent=games[id][1];root.append(title);let cleanup=()=>{};
+ const done=(score,record={})=>{const entry=records.add(id,score,record);const p=document.createElement('p');p.textContent='완료! 이 기기 기록에 저장했어요.';root.append(p);return entry;};
+ if(id==='tictactoe'){let b,turn,end;const board=document.createElement('div');board.className='tt-board';const again=document.createElement('button');again.textContent='다시 하기';again.onclick=reset;function draw(){board.replaceChildren(...b.map((v,i)=>{const x=document.createElement('button');x.textContent=v;x.disabled=!!v||end;x.onclick=()=>{if(v||end)return;b[i]=turn;if(checkTicTacToe(b)){end=true;done(1,{winner:turn});}else if(b.every(Boolean)){end=true;done(0,{draw:true});}else turn=turn==='O'?'X':'O';draw();};return x;}));}function reset(){b=Array(9).fill('');turn='O';end=false;draw();}reset();root.append(board,again);}
+ else if(id==='baseball'){let secret,tries;const input=document.createElement('input'),go=document.createElement('button'),log=document.createElement('div'),again=document.createElement('button');input.placeholder='서로 다른 3자리';go.textContent='던지기';again.textContent='다시 하기';function reset(){secret=createBaseballSecret();tries=0;input.value='';log.replaceChildren();go.disabled=false;}go.onclick=()=>{const g=input.value;if(!/^\\d{3}$/.test(g)||new Set(g).size<3){log.textContent='서로 다른 3자리 숫자를 입력해요.';return;}tries++;const r=baseballResult(secret,g),p=document.createElement('p');p.textContent=g+' → '+r.strike+'S '+r.ball+'B'+(r.out?' OUT':'');log.prepend(p);if(r.strike===3){done(-tries,{tries});go.disabled=true;}};again.onclick=reset;reset();root.append(input,go,log,again);}
+ else if(id==='math'){let score,count,q,end;const text=document.createElement('p'),input=document.createElement('input'),go=document.createElement('button'),again=document.createElement('button');go.textContent='확인';again.textContent='다시 하기';function reset(){score=0;count=0;end=false;q=createMathQuestion();text.textContent=q.text;input.value='';go.disabled=false;}go.onclick=()=>{if(end)return;if(Number(input.value)===q.answer)score++;count++;if(count>=10){end=true;text.textContent='최종 점수 '+score+'점';done(score,{questions:10});go.disabled=true;}else{q=createMathQuestion();text.textContent=q.text+' · 점수 '+score;input.value='';}};again.onclick=reset;reset();root.append(text,input,go,again);}
+ else if(id==='tensec'){let start=null,best=records.best('tensec',(a,b)=>b.score-a.score);const button=document.createElement('button'),out=document.createElement('p'),again=document.createElement('button');button.textContent='시작';again.textContent='다시 하기';function reset(){start=null;button.disabled=false;button.textContent='시작';out.textContent=best?'내 최고 기록: '+(Math.abs(best.score)/1000).toFixed(2)+'초 차이':'';}button.onclick=()=>{if(!start){start=performance.now();button.textContent='10초라고 생각되면 정지';out.textContent='시간을 숨겼어요.';}else{const elapsed=performance.now()-start,error=tenSecondError(elapsed);out.textContent=(elapsed/1000).toFixed(2)+'초 · 오차 '+(error/1000).toFixed(2)+'초';const entry=done(-error,{elapsed});if(!best||-error>best.score)best=entry;button.disabled=true;}};again.onclick=reset;reset();root.append(button,out,again);}
+ else if(id==='match') cleanup=mountMatch(root,done);
+ else if(id==='mine') cleanup=mountMinesweeper(root,done);
+ else if(id==='gomoku') cleanup=mountGomoku(root,done);
+ else if(id==='sudoku') cleanup=mountSudoku(root,done);
+ else {root.append(document.createTextNode('이 게임은 현재 준비 중입니다.'));} 
+ return {element:root,destroy:cleanup};
+}
