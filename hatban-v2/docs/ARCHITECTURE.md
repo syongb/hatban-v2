@@ -18,7 +18,17 @@ index.html
     → styles/main.css
 ```
 
-`main.js`는 앱 shell과 navigation을 연결한다. router는 URL hash와 현재 화면만 동기화한다. 각 feature 모듈은 자신의 화면 DOM만 생성한다.
+`main.js`는 앱 shell과 navigation을 연결하고, 시작할 때 저장된 전역 테마·글꼴을 적용한다. router는 URL hash와 현재 화면만 동기화한다. 각 feature 모듈은 자신의 화면 DOM만 생성한다.
+
+### 홈
+
+홈은 화면, 저장소, 공통 화면 설정을 분리한다.
+
+- `homeView.js`: 대시보드 화면, 입력 이벤트와 메모 debounce
+- `homeStorage.js`: `hatban_v2_home`의 안전한 읽기·쓰기와 D-Day 날짜 계산
+- `app/preferences.js`: 홈에서 고른 테마·글꼴을 앱 전체 CSS 변수에 적용
+
+홈 저장소는 legacy 키를 읽거나 변경하지 않는다. 손상된 JSON은 warning만 남기고 메모리 기본값으로 열며, 손상된 원본은 자동 삭제하지 않는다.
 
 ## 향후 확장 경계
 

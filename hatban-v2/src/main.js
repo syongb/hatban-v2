@@ -1,10 +1,14 @@
 import './styles/main.css';
 
 import { createRouter } from './app/router.js';
+import { applyPreferences } from './app/preferences.js';
 import { renderGamesView } from './features/games/gamesView.js';
 import { renderHomeView } from './features/home/homeView.js';
 import { renderNotebookView } from './features/notebook/notebookView.js';
 import { renderToolsView } from './features/tools/toolsView.js';
+import { createHomeStorage } from './features/home/homeStorage.js';
+
+applyPreferences(createHomeStorage().getPreferences());
 
 const routes = {
   home: {
