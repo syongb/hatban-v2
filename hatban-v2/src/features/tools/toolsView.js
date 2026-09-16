@@ -1,40 +1,30 @@
-import { createView } from '../../utils/createView.js';
+import { appendCalculatorInput, evaluateExpression } from './calculator.js';
+import { dictionaries, learningSites } from './toolsConfig.js';
+import { formatCountdown, formatStopwatch, stopwatch, timer } from './timekeepers.js';
 
-const tools = [
-  { icon: '📚', name: '국어·한자 사전', description: '궁금한 낱말을 빠르게 찾아봐요.', tone: 'blue' },
-  { icon: '🧮', name: '계산기', description: '공부 중 필요한 계산을 간단하게 해요.', tone: 'mint' },
-  { icon: '⏱️', name: '타이머·스톱워치', description: '집중 시간과 활동 시간을 재어 봐요.', tone: 'orange' },
-  { icon: '🔗', name: '학습 사이트', description: '자주 쓰는 배움터로 바로 이동해요.', tone: 'lilac' },
-];
+const keys = ['C', 'DEL', '÷', '×', '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '=', '0', '.'];
+const find = (root, selector) => root.querySelector(selector);
+
+function makeButton(text, data, className = 'tool-button') {
+  const button = document.createElement('button');
+  button.type = 'button'; button.className = className; button.textContent = text;
+  Object.assign(button.dataset, data); return button;
+}
 
 export function renderToolsView() {
-  return createView(`
-    <section class="screen" aria-labelledby="tools-title">
-      <div class="page-heading">
-        <div>
-          <span class="eyebrow">필요할 때 바로 꺼내요</span>
-          <h1 id="tools-title">학습 도우미 <span aria-hidden="true">🧰</span></h1>
-          <p>공부의 흐름을 끊지 않도록 자주 쓰는 도구를 한자리에 모을 예정이에요.</p>
-        </div>
-        <span class="status-pill">메뉴 미리보기</span>
-      </div>
-
-      <div class="feature-grid">
-        ${tools
-          .map(
-            (tool) => `
-              <article class="feature-card feature-card--${tool.tone}">
-                <span class="feature-card__icon" aria-hidden="true">${tool.icon}</span>
-                <div>
-                  <span class="coming-soon">준비 중</span>
-                  <h2>${tool.name}</h2>
-                  <p>${tool.description}</p>
-                </div>
-              </article>
-            `,
-          )
-          .join('')}
-      </div>
-    </section>
-  `);
+  const root = document.createElement('section');
+  root.className = 'screen tools-screen';
+  root.innerHTML = '<div class="page-heading"><div><span class="eyebrow">필요할 때 바로 꺼내요</span><h1 id="tools-title">학습 도우미 🧰</h1><p>찾고, 계산하고, 시간을 재는 수업 도구를 한자리에 모았어요.</p></div><span class="status-pill">수업 도구 모음</span></div><div class="tools-layout"><article class="tool-card"><div class="tool-heading"><span>📚</span><div><span class="card-label">사전</span><h2>국어·한자 사전</h2></div></div><form class="dictionary-form"><label>검색할 낱말 <input name="dictionary-query" maxlength="80" placeholder="궁금한 낱말을 입력하세요."></label><div class="dictionary-buttons"></div><p class="tool-message" aria-live="polite"></p></form></article><article class="tool-card"><div class="tool-heading"><span>🧮</span><div><span class="card-label">계산기</span><h2>간단 계산기</h2></div></div><output class="calculator-display" aria-live="polite">0</output><div class="calculator-keys"></div><p class="tool-message calculator-message" aria-live="polite"></p></article><article class="tool-card"><div class="tool-heading"><span>⏳</span><div><span class="card-label">타이머</span><h2>집중 시간</h2></div></div><output class="time-display timer-display">05:00</output><div class="quick-times"></div><label class="time-input-label">분 단위 설정 <input name="timer-minutes" type="number" min="0.1" max="180" step="0.1" value="5"></label><div class="time-controls"><button type="button" class="tool-button" data-action="timer-start">시작</button><button type="button" class="tool-button tool-button--light" data-action="timer-pause">일시정지</button><button type="button" class="tool-button tool-button--light" data-action="timer-reset">초기화</button></div><p class="timer-status" aria-live="polite"></p></article><article class="tool-card"><div class="tool-heading"><span>⏱️</span><div><span class="card-label">스톱워치</span><h2>활동 시간</h2></div></div><output class="time-display stopwatch-display">00:00.0</output><div class="time-controls"><button type="button" class="tool-button" data-action="stopwatch-start">시작</button><button type="button" class="tool-button tool-button--light" data-action="stopwatch-pause">일시정지</button><button type="button" class="tool-button tool-button--light" data-action="stopwatch-reset">초기화</button></div><p class="stopwatch-status" aria-live="polite"></p></article><article class="tool-card tool-card--sites"><div class="tool-heading"><span>🔗</span><div><span class="card-label">학습 사이트</span><h2>자주 쓰는 배움터</h2></div></div><div class="learning-site-list"></div></article></div>';
+  dictionaries.forEach((dict) => { const button = makeButton(dict.icon + ' ' + dict.label, { dictionary: dict.id }); button.type = 'submit'; find(root, '.dictionary-buttons').append(button); });
+  keys.forEach((key) => find(root, '.calculator-keys').append(makeButton(key === 'DEL' ? '⌫' : key, { calc: key }, 'calculator-key' + (['C', 'DEL', '='].includes(key) ? ' is-special' : ''))));
+  [1, 3, 5, 10].forEach((minutes) => find(root, '.quick-times').append(makeButton(minutes + '분', { minutes }, '')));
+  learningSites.forEach((site) => { const link = document.createElement('a'); link.href = site.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = site.icon + ' ' + site.label + ' ↗'; find(root, '.learning-site-list').append(link); });
+  let display = '0';
+  const setTimer = (state) => { find(root, '.timer-display').textContent = formatCountdown(state.remaining); find(root, '.timer-status').textContent = state.remaining === 0 ? '시간이 다 되었어요!' : state.running ? '타이머가 실행 중이에요.' : '일시정지 상태예요.'; };
+  const setStopwatch = (state) => { find(root, '.stopwatch-display').textContent = formatStopwatch(state.elapsed); find(root, '.stopwatch-status').textContent = state.running ? '스톱워치가 실행 중이에요.' : state.elapsed ? '일시정지 상태예요.' : '아직 시작하지 않았어요.'; };
+  const unTimer = timer.subscribe(setTimer); const unStopwatch = stopwatch.subscribe(setStopwatch);
+  root.addEventListener('submit', (event) => { if (!event.target.matches('.dictionary-form')) return; event.preventDefault(); const query = find(root, '[name="dictionary-query"]').value.trim(); const type = event.submitter?.dataset.dictionary; if (!query || !type) { find(root, '.dictionary-form .tool-message').textContent = '찾을 낱말을 먼저 입력해 주세요.'; return; } const dict = dictionaries.find((item) => item.id === type); window.open(dict.url + encodeURIComponent(query), '_blank', 'noopener,noreferrer'); find(root, '.dictionary-form .tool-message').textContent = dict.label + ' 검색 결과를 새 탭에서 열었어요.'; });
+  root.addEventListener('click', (event) => { const key = event.target.closest('[data-calc]')?.dataset.calc; if (key) { const message = find(root, '.calculator-message'); message.textContent = ''; if (key === 'C') display = '0'; else if (key === 'DEL') display = display === '오류' || display.length < 2 ? '0' : display.slice(0, -1); else if (key === '=') { try { display = evaluateExpression(display); } catch (error) { display = '오류'; message.textContent = error.message; } } else display = appendCalculatorInput(display, key); find(root, '.calculator-display').textContent = display; } const minutes = event.target.closest('[data-minutes]')?.dataset.minutes; if (minutes) { timer.setMinutes(Number(minutes)); find(root, '[name="timer-minutes"]').value = minutes; } const action = event.target.closest('[data-action]')?.dataset.action; if (action === 'timer-start') timer.start(); if (action === 'timer-pause') timer.pause(); if (action === 'timer-reset') timer.reset(); if (action === 'stopwatch-start') stopwatch.start(); if (action === 'stopwatch-pause') stopwatch.pause(); if (action === 'stopwatch-reset') stopwatch.reset(); });
+  find(root, '[name="timer-minutes"]').addEventListener('change', (event) => { const minutes = Number(event.target.value); if (minutes > 0 && minutes <= 180) timer.setMinutes(minutes); });
+  return { element: root, destroy() { unTimer(); unStopwatch(); } };
 }

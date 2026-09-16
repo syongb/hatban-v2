@@ -116,3 +116,7 @@ Canvas CSS 크기와 bitmap 크기를 함께 맞추며 `devicePixelRatio`를 최
 과거 공책을 열면 화면은 entry의 기존 `id`, `date`, `dayId`, `subject`, `period`을 편집 대상으로 고정한다. 따라서 수정과 PNG 내보내기가 현재 시간표 날짜가 아니라 과거 entry 자체에 적용된다. 모아보기는 drawing 이미지를 미리 디코딩하지 않고 존재 여부만 표시한다.
 
 다음 배움공책 단계에서는 기록 삭제와 전체·요일·과목별 추가 정리 기능을 검토한다. 서버 기능이 시작되기 전까지 PNG는 기기에서 즉시 생성하며 별도로 보관하지 않는다.
+
+### 학습 도우미
+
+`features/tools/`는 화면(`toolsView.js`), 안전한 사칙연산 계산(`calculator.js`), 실제 시각 기준 타이머·스톱워치(`timekeepers.js`), 사전·학습 사이트 목록(`toolsConfig.js`)으로 나뉜다. 시간 도구 상태는 화면을 떠나도 유지하고, 화면은 구독만 정리한다.

@@ -419,6 +419,35 @@ a:focus-visible,
 .home-theme-swatch.is-selected,
 .home-font-option.is-selected { border-color: var(--coral); background: var(--theme-soft); }
 
+.tools-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 24px; }
+.tool-card { display: grid; gap: 18px; padding: clamp(20px, 4vw, 30px); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); box-shadow: 0 10px 28px rgba(97, 78, 55, .07); }
+.tool-card--sites { grid-column: 1 / -1; }
+.tool-heading { display: flex; align-items: center; gap: 12px; }
+.tool-heading > span { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 16px; background: var(--theme-soft); font-size: 25px; }
+.tool-heading h2 { margin: 4px 0 0; font-family: var(--display-font); font-size: 27px; font-weight: 400; }
+.dictionary-form { display: grid; gap: 12px; }
+.dictionary-form label, .time-input-label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 900; }
+.dictionary-form input, .time-input-label input { min-height: 48px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 13px; background: #fff; color: var(--ink); font: inherit; }
+.dictionary-buttons, .time-controls, .quick-times { display: flex; flex-wrap: wrap; gap: 8px; }
+.tool-button, .quick-times button { min-height: 46px; padding: 10px 14px; border: 0; border-radius: 13px; background: var(--coral); color: #fff; cursor: pointer; font: inherit; font-weight: 900; }
+.tool-button--light, .quick-times button { background: var(--theme-soft); color: var(--coral-dark); }
+.tool-message { min-height: 20px; margin: 0; color: var(--muted); font-size: 13px; font-weight: 800; }
+.calculator-display, .time-display { display: block; overflow-x: auto; padding: 15px; border-radius: 16px; background: #fff; box-shadow: inset 0 2px 8px rgba(83, 74, 63, .08); color: var(--ink); text-align: right; white-space: nowrap; }
+.calculator-display { min-height: 78px; font-family: ui-monospace, monospace; font-size: clamp(30px, 5vw, 42px); }
+.calculator-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+.calculator-key { min-height: 54px; border: 0; border-radius: 15px; background: #f3f0ec; color: var(--ink); cursor: pointer; font: inherit; font-size: 19px; font-weight: 900; }
+.calculator-key.is-special { background: var(--theme-soft); color: var(--coral-dark); }
+.calculator-key[data-calc="="] { background: var(--coral); color: #fff; }
+.time-display { color: var(--coral-dark); font-family: ui-monospace, monospace; font-size: clamp(42px, 8vw, 60px); font-weight: 900; letter-spacing: -.07em; text-align: center; }
+.learning-site-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.learning-site-list a { display: flex; min-height: 56px; align-items: center; gap: 8px; padding: 12px; border-radius: 14px; background: #f7f4ef; color: var(--ink); font-weight: 900; text-decoration: none; }
+.learning-site-list a span:nth-child(2) { flex: 1; }
+
+@media (max-width: 620px) {
+  .tools-layout { grid-template-columns: 1fr; }
+  .tool-card--sites { grid-column: auto; }
+}
+
 @media (max-width: 620px) {
   .home-hero { grid-template-columns: auto 1fr; }
   .home-secondary-button { grid-column: 1 / -1; width: 100%; }
