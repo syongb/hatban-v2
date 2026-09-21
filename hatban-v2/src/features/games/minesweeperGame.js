@@ -1,1 +1,56 @@
-export function mountMinesweeper(root,done){const size=10,mines=15;let cells,started,end,mode='open';const status=document.createElement('p'),board=document.createElement('div'),openBtn=document.createElement('button'),flagBtn=document.createElement('button'),again=document.createElement('button');board.className='mine-board';openBtn.textContent='⛏️ 열기';flagBtn.textContent='🚩 깃발';again.textContent='다시 하기';openBtn.onclick=()=>{mode='open';draw();};flagBtn.onclick=()=>{mode='flag';draw();};again.onclick=reset;root.append(status,openBtn,flagBtn,board,again);const adj=i=>[-1,0,1].flatMap(dr=>[-1,0,1].map(dc=>[dr,dc])).filter(([dr,dc])=>dr||dc).reduce((n,[dr,dc])=>{const r=Math.floor(i/size)+dr,c=i%size+dc,j=r*size+c;return n+(r>=0&&r<size&&c>=0&&c<size&&cells[j].mine);},0);function reset(){cells=Array.from({length:size*size},()=>({mine:false,open:false,flag:false}));started=false;end=false;mode='open';status.textContent='열기 모드';draw();}function plant(first){cells.map((_,i)=>i).filter(i=>i!==first).sort(()=>Math.random()-.5).slice(0,mines).forEach(i=>cells[i].mine=true);started=true;}function open(i){if(end||cells[i].flag||cells[i].open)return;if(!started)plant(i);cells[i].open=true;if(cells[i].mine){end=true;status.textContent='지뢰를 밟았어요!';}else if(adj(i)===0)[-1,0,1].forEach(dr=>[-1,0,1].forEach(dc=>{const r=Math.floor(i/size)+dr,c=i%size+dc;if(r>=0&&r<size&&c>=0&&c<size)open(r*size+c);}));if(cells.filter(c=>!c.mine).every(c=>c.open)){end=true;status.textContent='승리!';done(1,{});}draw();}function draw(){status.textContent=end?status.textContent:(mode==='flag'?'깃발 모드: 칸을 눌러 표시/해제':'열기 모드');board.replaceChildren(...cells.map((c,i)=>{const b=document.createElement('button');b.className='mine-cell';b.textContent=c.open?(c.mine?'💣':adj(i)||''):(c.flag?'🚩':'');b.disabled=c.open||end;b.onclick=()=>mode==='flag'?(c.flag=!c.flag,draw()):open(i);b.oncontextmenu=e=>{e.preventDefault();if(!end&&!c.open){c.flag=!c.flag;draw();}};return b;}));}reset();return()=>{end=true;};}
+import { MINE_COUNT, MINE_SIZE, adjacentMineCount, createMineState, openMineCell, toggleMineFlag } from './minesweeperLogic.js';
+
+export function mountMinesweeper(root, done) {
+  let state;
+  let mode = 'open';
+  const status = document.createElement('p');
+  const board = document.createElement('div');
+  const openButton = document.createElement('button');
+  const flagButton = document.createElement('button');
+  const again = document.createElement('button');
+
+  board.className = 'mine-board';
+  board.setAttribute('aria-label', '10 곱하기 10 지뢰찾기판');
+  openButton.textContent = '⛏️ 열기';
+  flagButton.textContent = '🚩 깃발';
+  again.textContent = '다시 하기';
+  openButton.onclick = () => { mode = 'open'; draw(); };
+  flagButton.onclick = () => { mode = 'flag'; draw(); };
+  again.onclick = reset;
+  root.append(status, openButton, flagButton, board, again);
+
+  function reset() {
+    state = createMineState(MINE_SIZE, MINE_COUNT);
+    root.querySelector('.game-completion-notice')?.remove();
+    mode = 'open';
+    draw();
+  }
+
+  function move(index, useFlag) {
+    const before = state;
+    state = useFlag ? toggleMineFlag(state, index) : openMineCell(state, index);
+    if (!before.ended && state.result === 'won') done(1, {});
+    draw();
+  }
+
+  function draw() {
+    if (state.result === 'lost') status.textContent = '지뢰를 밟았어요!';
+    else if (state.result === 'won') status.textContent = '승리!';
+    else status.textContent = mode === 'flag' ? '깃발 모드: 칸을 눌러 표시/해제' : '열기 모드';
+    board.replaceChildren(...state.cells.map((cell, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mine-cell';
+      const revealMine = state.ended && state.result === 'lost' && cell.mine;
+      button.textContent = cell.open || revealMine ? (cell.mine ? '💣' : adjacentMineCount(state.cells, state.size, index) || '') : (cell.flag ? '🚩' : '');
+      button.disabled = cell.open || state.ended;
+      button.setAttribute('aria-label', `${Math.floor(index / state.size) + 1}행 ${index % state.size + 1}열${cell.flag ? ' 깃발' : ''}`);
+      button.onclick = () => move(index, mode === 'flag');
+      button.oncontextmenu = (event) => { event.preventDefault(); move(index, true); };
+      return button;
+    }));
+  }
+
+  reset();
+  return () => { state = { ...state, ended: true }; };
+}

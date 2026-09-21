@@ -1,2 +1,44 @@
-const puzzle='530070000600195000098000060800060003400803001700020006060000280000419005000080079';const answer='534678912672195348198342567859761423426853791713924856961537284287419635345286179';
-export function mountSudoku(root,done){const board=document.createElement('div'),status=document.createElement('p'),again=document.createElement('button');board.className='sudoku-board';again.textContent='다시 하기';let values,end=false;again.onclick=reset;root.append(status,board,again);function reset(){values=[...puzzle];end=false;status.textContent='빈 칸을 눌러 숫자를 바꿔요.';draw();}function draw(){board.replaceChildren(...values.map((v,i)=>{const input=document.createElement('button');const fixed=puzzle[i]!=='0';input.textContent=v==='0'?'':v;input.disabled=fixed||end;input.className=fixed?'sudoku-fixed':'sudoku-cell';input.onclick=()=>{values[i]=String(Number(values[i]||0)%10);const current=values.join('');if(current===answer){end=true;status.textContent='완성했어요!';done(1,{});}else if(!values.includes('0'))status.textContent='아직 맞지 않는 칸이 있어요. 다시 확인해 보세요.';draw();};return input;}));}reset();}
+import { SUDOKU_SOLUTION, createSudokuState, cycleSudokuCell, sudokuStatus } from './sudokuLogic.js';
+
+export function mountSudoku(root, done) {
+  const board = document.createElement('div');
+  const status = document.createElement('p');
+  const again = document.createElement('button');
+  let state;
+
+  board.className = 'sudoku-board';
+  board.setAttribute('aria-label', '9 곱하기 9 스도쿠판');
+  again.textContent = '다시 하기';
+  again.onclick = reset;
+  root.append(status, board, again);
+
+  function reset() {
+    state = createSudokuState();
+    root.querySelector('.game-completion-notice')?.remove();
+    render();
+  }
+
+  function render() {
+    status.textContent = state.message;
+    board.replaceChildren(...state.values.map((value, index) => {
+      const input = document.createElement('button');
+      const fixed = state.puzzle[index] !== '0';
+      input.type = 'button';
+      input.textContent = value === '0' ? '' : value;
+      input.disabled = fixed || state.complete;
+      input.className = fixed ? 'sudoku-fixed' : 'sudoku-cell';
+      input.setAttribute('aria-label', `${Math.floor(index / 9) + 1}행 ${index % 9 + 1}열${fixed ? ' 고정 숫자' : ' 빈 칸'}`);
+      input.onclick = () => {
+        state = cycleSudokuCell(state, index);
+        const result = sudokuStatus(state);
+        state = { ...state, complete: result.complete, message: result.message || state.message };
+        if (result.correct) done(1, {});
+        render();
+      };
+      return input;
+    }));
+  }
+
+  reset();
+  return () => { state = { ...state, complete: true }; };
+}
