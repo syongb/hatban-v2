@@ -39,7 +39,8 @@ export function mountGomoku(root, done) {
       <button type="button" class="gomoku-rules-close">닫기</button>
     </div>`;
   boardFrame.append(board);
-  actions.append(rulesButton, again);
+  status.className = 'turn-status';
+  actions.append(rulesButton);
   root.append(status, notice, boardFrame, actions, dialog);
 
   const closeRules = () => { dialog.hidden = true; rulesButton.focus(); };
@@ -95,5 +96,5 @@ export function mountGomoku(root, done) {
   }
 
   render();
-  return () => { state = { ...state, ended: true }; };
+  return () => { dialog.hidden = true; state = { ...state, ended: true }; };
 }

@@ -1,44 +1,8 @@
-import { SUDOKU_SOLUTION, createSudokuState, cycleSudokuCell, sudokuStatus } from './sudokuLogic.js';
-
-export function mountSudoku(root, done) {
-  const board = document.createElement('div');
-  const status = document.createElement('p');
-  const again = document.createElement('button');
-  let state;
-
-  board.className = 'sudoku-board';
-  board.setAttribute('aria-label', '9 곱하기 9 스도쿠판');
-  again.textContent = '다시 하기';
-  again.onclick = reset;
-  root.append(status, board, again);
-
-  function reset() {
-    state = createSudokuState();
-    root.querySelector('.game-completion-notice')?.remove();
-    render();
-  }
-
-  function render() {
-    status.textContent = state.message;
-    board.replaceChildren(...state.values.map((value, index) => {
-      const input = document.createElement('button');
-      const fixed = state.puzzle[index] !== '0';
-      input.type = 'button';
-      input.textContent = value === '0' ? '' : value;
-      input.disabled = fixed || state.complete;
-      input.className = fixed ? 'sudoku-fixed' : 'sudoku-cell';
-      input.setAttribute('aria-label', `${Math.floor(index / 9) + 1}행 ${index % 9 + 1}열${fixed ? ' 고정 숫자' : ' 빈 칸'}`);
-      input.onclick = () => {
-        state = cycleSudokuCell(state, index);
-        const result = sudokuStatus(state);
-        state = { ...state, complete: result.complete, message: result.message || state.message };
-        if (result.correct) done(1, {});
-        render();
-      };
-      return input;
-    }));
-  }
-
-  reset();
-  return () => { state = { ...state, complete: true }; };
+import { createSudokuPuzzle, createSudokuState, cycleSudokuCell, sudokuMistakes, sudokuStatus } from './sudokuLogic.js';
+export function mountSudoku(root,done,{difficulty='easy'}={}) {
+  let state=createSudokuState(createSudokuPuzzle(difficulty));const startedAt=Date.now();let revealErrors=false;
+  const board=document.createElement('div');board.className='sudoku-board';board.setAttribute('aria-label','9 곱하기 9 스도쿠판');
+  const status=document.createElement('p');status.className='sudoku-status';status.setAttribute('role','status');root.append(status,board);
+  function render(){const wrong=revealErrors?sudokuMistakes(state):[];status.textContent=state.message+' · '+state.values.filter(v=>v!=='0').length+'/81';board.replaceChildren(...state.values.map((value,index)=>{const fixed=state.puzzle[index]!=='0';const b=document.createElement('button');b.textContent=value==='0'?'':value;b.disabled=fixed||state.complete;b.className=(fixed?'sudoku-fixed':'sudoku-cell')+(wrong.includes(index)?' is-wrong':'');b.setAttribute('aria-label',(Math.floor(index/9)+1)+'행 '+(index%9+1)+'열 '+(fixed?'고정 숫자':'입력 칸')+' '+(value==='0'?'비어 있음':value)+(wrong.includes(index)?' 오답':''));b.setAttribute('aria-invalid',String(wrong.includes(index)));b.onclick=()=>{state=cycleSudokuCell(state,index);const result=sudokuStatus(state);if(!state.values.includes('0'))revealErrors=true;state={...state,complete:result.complete,message:result.message||'빈 칸을 눌러 숫자를 바꿔요.'};render();if(result.correct){const elapsed=Date.now()-startedAt;done(-elapsed,{elapsed});}};return b;}));}
+  render();return()=>{state={...state,complete:true};};
 }

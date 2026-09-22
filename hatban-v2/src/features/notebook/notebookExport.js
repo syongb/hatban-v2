@@ -203,36 +203,7 @@ function downloadBlob(blob, fileName, documentObject, urlObject) {
   globalThis.setTimeout(() => urlObject.revokeObjectURL(downloadUrl), 0);
 }
 
-export async function shareOrDownloadNotebook(
-  { blob, fileName },
-  {
-    navigatorObject = globalThis.navigator,
-    documentObject = globalThis.document,
-    urlObject = globalThis.URL,
-    FileClass = globalThis.File,
-  } = {},
-) {
-  const file = new FileClass([blob], fileName, { type: 'image/png' });
-  let canShareFile = false;
-
-  if (typeof navigatorObject.share === 'function' && typeof navigatorObject.canShare === 'function') {
-    try {
-      canShareFile = navigatorObject.canShare({ files: [file] });
-    } catch (error) {
-      console.warn('[햇반이네] 이 브라우저는 PNG 파일 공유 여부를 확인하지 못했습니다.', error);
-    }
-  }
-
-  if (canShareFile) {
-    try {
-      await navigatorObject.share({ files: [file], title: '배움공책' });
-      return { method: 'shared' };
-    } catch (error) {
-      if (error?.name === 'AbortError') return { method: 'cancelled' };
-      console.warn('[햇반이네] 시스템 공유에 실패해 PNG 다운로드로 전환합니다.', error);
-    }
-  }
-
+export async function downloadNotebook({ blob, fileName }, { documentObject = globalThis.document, urlObject = globalThis.URL } = {}) {
   downloadBlob(blob, fileName, documentObject, urlObject);
   return { method: 'downloaded' };
 }

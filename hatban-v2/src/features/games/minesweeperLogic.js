@@ -1,7 +1,9 @@
 export const MINE_SIZE = 10;
 export const MINE_COUNT = 15;
 
-const neighbours = (size, index) => {
+export const MINE_DIFFICULTIES = { easy: {width:9,height:9,mines:10}, medium: {width:16,height:16,mines:40}, hard: {width:30,height:16,mines:99} };
+
+const neighbours = (size, index, height = size) => {
   const row = Math.floor(index / size);
   const col = index % size;
   const result = [];
@@ -10,7 +12,7 @@ const neighbours = (size, index) => {
       if (!rowOffset && !colOffset) continue;
       const nextRow = row + rowOffset;
       const nextCol = col + colOffset;
-      if (nextRow >= 0 && nextRow < size && nextCol >= 0 && nextCol < size) result.push(nextRow * size + nextCol);
+      if (nextRow >= 0 && nextRow < height && nextCol >= 0 && nextCol < size) result.push(nextRow * size + nextCol);
     }
   }
   return result;
@@ -18,11 +20,12 @@ const neighbours = (size, index) => {
 
 const cloneCells = (cells) => cells.map((cell) => ({ ...cell }));
 
-export function createMineState(size = MINE_SIZE, mines = MINE_COUNT) {
+export function createMineState(size = MINE_SIZE, mines = MINE_COUNT, height = size) {
   return {
     size,
+    height,
     mines,
-    cells: Array.from({ length: size * size }, () => ({ mine: false, open: false, flag: false })),
+    cells: Array.from({ length: size * height }, () => ({ mine: false, open: false, flag: false })),
     started: false,
     ended: false,
     result: null,
@@ -30,7 +33,7 @@ export function createMineState(size = MINE_SIZE, mines = MINE_COUNT) {
 }
 
 export function adjacentMineCount(cells, size, index) {
-  return neighbours(size, index).filter((next) => cells[next].mine).length;
+  return neighbours(size, index, cells.length / size).filter((next) => cells[next].mine).length;
 }
 
 export function plantMines(state, firstIndex, random = Math.random) {
@@ -54,7 +57,7 @@ function revealCells(state, firstIndex) {
     cell.open = true;
     if (cell.mine) return { ...state, cells, ended: true, result: 'lost' };
     if (adjacentMineCount(cells, state.size, index) === 0) {
-      neighbours(state.size, index).forEach((next) => {
+      neighbours(state.size, index, state.height).forEach((next) => {
         if (!cells[next].open && !cells[next].flag) queue.push(next);
       });
     }

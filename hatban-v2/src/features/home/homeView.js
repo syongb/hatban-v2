@@ -1,3 +1,4 @@
+import { createDialog } from '../../utils/dialog.js';
 import { HOME_FONTS, HOME_THEMES, applyPreferences } from '../../app/preferences.js';
 import { calculateDday, createHomeStorage, getLocalDateKey } from './homeStorage.js';
 
@@ -5,7 +6,7 @@ const QUOTES = ['오늘의 작은 노력은 내일의 나를 더 단단하게 �
 const RATINGS = [['focus', '집중했어요', '🎯'], ['effort', '끝까지 해 봤어요', '🌱'], ['kindness', '친절하게 함께했어요', '💛']];
 const COLORS = ['yellow', 'mint', 'blue', 'lilac'];
 const q = (root, selector) => root.querySelector(selector);
-const setShown = (element, shown) => { element.hidden = !shown; };
+const setShown = (element, shown) => { const dialog = element.closest('dialog'); if (shown) dialog.showModal(); else dialog.close(); };
 const dailyQuote = (key) => QUOTES[Number(key.replaceAll('-', '')) % QUOTES.length];
 
 export function renderHomeView() {
@@ -19,6 +20,18 @@ export function renderHomeView() {
     + '<article class="home-panel home-rating-panel"><div class="home-panel__heading"><span class="home-panel__icon">⭐</span><div><span class="card-label">오늘의 자기평가</span><h2>오늘 나는 어땠나요?</h2></div></div><p class="home-panel__hint">별을 한 번 누르면 0.5점, 한 번 더 누르면 1점 단위로 조절돼요.</p><div class="home-rating-list"></div></article>'
     + '<article class="home-panel home-memo-panel"><div class="home-panel__heading"><span class="home-panel__icon">🗒️</span><div><span class="card-label">개인 포스트잇 메모</span><h2>잊지 말아야 할 것</h2></div><button class="home-primary-button" type="button" data-action="memo-new">새 메모</button></div><p class="home-panel__hint">입력한 내용은 잠시 뒤 자동으로 저장돼요.</p><div class="home-memo-list" aria-live="polite"></div></article>'
     + '<article class="home-panel home-settings-panel"><div class="home-panel__heading"><span class="home-panel__icon">🎨</span><div><span class="card-label">내 화면 꾸미기</span><h2>테마와 글꼴</h2></div></div><div class="home-preference-group"><span>테마 색상</span><div class="home-theme-options" role="group" aria-label="테마 색상"></div></div><div class="home-preference-group"><span>글꼴</span><div class="home-font-options" role="group" aria-label="글꼴"></div></div></article>';
+  const dialogs = [];
+  for (const [panel, title] of [['profile','프로필 수정'],['quote','오늘의 문구 수정'],['dday','기다리는 날 설정']]) {
+    const form = q(root, '[data-panel="' + panel + '"]'); form.hidden = false;
+    form.classList.remove('home-panel');
+    const dialog = createDialog(title, form); dialogs.push(dialog); root.append(dialog);
+  }
+  root.insertBefore(q(root,'.home-memo-panel'), q(root,'.home-dashboard-grid'));
+  const colorLabel = document.createElement('label'); colorLabel.className = 'custom-color-control';
+  colorLabel.innerHTML = '나만의 색상 <input type="color" aria-label="나만의 테마 색상"><output></output>';
+  q(root,'.home-settings-panel').append(colorLabel);
+  const picker = colorLabel.querySelector('input');
+  picker.addEventListener('input', () => { applyPreferences(storage.setPreferences({customColor:picker.value})); renderPreferences(); });
   const pending = new Map();
   const timers = new Map();
   const state = () => storage.getState();
@@ -78,27 +91,29 @@ export function renderHomeView() {
   }
   function renderPreferences() {
     const preferences = state().preferences;
+    picker.value = preferences.customColor || (HOME_THEMES[preferences.themeId] || HOME_THEMES.coral).accent;
+    colorLabel.querySelector('output').textContent = 'RGB ' + [1,3,5].map(i => parseInt(picker.value.slice(i,i+2),16)).join(' · ');
     const themes = q(root, '.home-theme-options'); const fonts = q(root, '.home-font-options');
-    themes.replaceChildren(...Object.entries(HOME_THEMES).map(([id, theme]) => { const button = document.createElement('button'); button.type = 'button'; button.dataset.theme = id; button.className = 'home-theme-swatch' + (preferences.themeId === id ? ' is-selected' : ''); button.style.setProperty('--swatch', theme.accent); button.textContent = theme.label; return button; }));
+    themes.replaceChildren(...Object.entries(HOME_THEMES).map(([id, theme]) => { const button = document.createElement('button'); button.type = 'button'; button.dataset.theme = id; button.className = 'home-theme-swatch' + (!preferences.customColor && preferences.themeId === id ? ' is-selected' : ''); button.style.setProperty('--swatch', theme.accent); button.textContent = theme.label; return button; }));
     fonts.replaceChildren(...Object.entries(HOME_FONTS).map(([id, font]) => { const button = document.createElement('button'); button.type = 'button'; button.dataset.font = id; button.className = 'home-font-option' + (preferences.fontId === id ? ' is-selected' : ''); button.style.fontFamily = font.family; button.textContent = font.label; return button; }));
   }
   function render() { renderProfile(); renderQuote(); renderDday(); renderRatings(); renderMemos(); renderPreferences(); }
   root.addEventListener('click', (event) => {
     const action = event.target.closest('[data-action]')?.dataset.action;
-    if (action === 'profile') setShown(q(root, '[data-panel="profile"]'), q(root, '[data-panel="profile"]').hidden);
-    if (action === 'quote') setShown(q(root, '[data-panel="quote"]'), q(root, '[data-panel="quote"]').hidden);
+    if (action === 'profile') setShown(q(root, '[data-panel="profile"]'), true);
+    if (action === 'quote') setShown(q(root, '[data-panel="quote"]'), true);
     if (action === 'quote-cancel') setShown(q(root, '[data-panel="quote"]'), false);
-    if (action === 'dday') setShown(q(root, '[data-panel="dday"]'), q(root, '[data-panel="dday"]').hidden);
+    if (action === 'dday') setShown(q(root, '[data-panel="dday"]'), true);
     if (action === 'dday-clear') { storage.clearDday(); renderDday(); setShown(q(root, '[data-panel="dday"]'), false); }
     if (action === 'memo-new') renderMemos(storage.createMemo().id);
     if (action === 'memo-delete') { const id = event.target.closest('[data-memo-id]')?.dataset.memoId; if (id && window.confirm('이 메모를 지울까요?')) { pending.delete(id); storage.deleteMemo(id); renderMemos(); } }
     const color = event.target.closest('[data-memo-color]'); if (color) { const id = color.closest('[data-memo-id]').dataset.memoId; flushMemo(id); storage.updateMemo(id, { color: color.dataset.memoColor }); renderMemos(); }
     const star = event.target.closest('[data-star]'); if (star) { const key = star.parentElement.dataset.rating; const current = Number((state().ratings[today] || {})[key] || 0); const n = Number(star.dataset.star); storage.setRating(today, key, current === n - .5 ? n : n - .5); renderRatings(); }
-    const theme = event.target.closest('[data-theme]'); if (theme) { applyPreferences(storage.setPreferences({ themeId: theme.dataset.theme })); renderPreferences(); }
+    const theme = event.target.closest('[data-theme]'); if (theme) { applyPreferences(storage.setPreferences({ themeId: theme.dataset.theme, customColor: null })); renderPreferences(); }
     const font = event.target.closest('[data-font]'); if (font) { applyPreferences(storage.setPreferences({ fontId: font.dataset.font })); renderPreferences(); }
   });
   root.addEventListener('input', (event) => { const area = event.target.closest('[data-memo-text]'); if (!area) return; const id = area.closest('[data-memo-id]').dataset.memoId; pending.set(id, area.value); window.clearTimeout(timers.get(id)); timers.set(id, window.setTimeout(() => flushMemo(id), 700)); });
   root.addEventListener('submit', (event) => { event.preventDefault(); if (event.target.matches('[data-panel="profile"]')) { storage.updateProfile({ name: q(root, '[name="profile-name"]').value, emoji: q(root, '[name="profile-emoji"]').value }); renderProfile(); setShown(event.target, false); } if (event.target.matches('[data-panel="quote"]')) { storage.setQuote(today, q(root, '[name="quote-text"]').value); renderQuote(); setShown(event.target, false); } if (event.target.matches('[data-panel="dday"]')) { storage.setDday({ name: q(root, '[name="dday-name"]').value, date: q(root, '[name="dday-date"]').value }); renderDday(); setShown(event.target, false); } });
   render();
-  return { element: root, destroy() { [...pending.keys()].forEach(flushMemo); timers.forEach((timer) => window.clearTimeout(timer)); } };
+  return { element: root, destroy() { dialogs.forEach(dialog => dialog.close()); [...pending.keys()].forEach(flushMemo); timers.forEach((timer) => window.clearTimeout(timer)); } };
 }

@@ -1,4 +1,5 @@
 import './styles/main.css';
+import './styles/classroom.css';
 
 import { createRouter } from './app/router.js';
 import { applyPreferences } from './app/preferences.js';

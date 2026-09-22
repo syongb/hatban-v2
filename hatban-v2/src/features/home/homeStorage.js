@@ -44,7 +44,7 @@ function normalizeStore(parsed) {
     })).filter((memo) => memo.id) : [],
     ratings: isRecord(parsed.ratings) ? { ...parsed.ratings } : {},
     preferences: isRecord(parsed.preferences)
-      ? { themeId: cleanString(parsed.preferences.themeId, 'coral') || 'coral', fontId: cleanString(parsed.preferences.fontId, 'gowun') || 'gowun' }
+      ? { themeId: cleanString(parsed.preferences.themeId, 'coral') || 'coral', fontId: cleanString(parsed.preferences.fontId, 'gowun') || 'gowun', customColor: /^#[0-9a-f]{6}$/i.test(parsed.preferences.customColor || '') ? parsed.preferences.customColor : null }
       : empty.preferences,
   };
 }

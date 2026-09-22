@@ -1,6 +1,16 @@
 export const SUDOKU_PUZZLE = '530070000600195000098000060800060003400803001700020006060000280000419005000080079';
 export const SUDOKU_SOLUTION = '534678912672195348198342567859761423426853791713924856961537284287419635345286179';
 
+export function createSudokuPuzzle(difficulty = 'hard') {
+  const blanks = {easy:30, medium:42, hard:51}[difficulty] ?? 51;
+  const puzzle = [...SUDOKU_PUZZLE];
+  const holes = puzzle.flatMap((value,index) => value === '0' ? [index] : []);
+  for (const index of holes.slice(0, holes.length-blanks)) puzzle[index] = SUDOKU_SOLUTION[index];
+  return puzzle.join('');
+}
+export function sudokuMistakes(state, solution = SUDOKU_SOLUTION) {
+  return state.values.flatMap((value,index) => state.puzzle[index] === '0' && value !== '0' && value !== solution[index] ? [index] : []);
+}
 export function createSudokuState(puzzle = SUDOKU_PUZZLE) {
   return { puzzle, values: [...puzzle], complete: false, message: '빈 칸을 눌러 숫자를 바꿔요.' };
 }

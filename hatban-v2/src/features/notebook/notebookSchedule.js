@@ -51,8 +51,8 @@ export function getDateForWeekday(dayId, now = new Date()) {
   return formatLocalDate(target);
 }
 
-export function getScheduleSlot(dayId, period) {
-  const day = WEEKDAYS.find((item) => item.id === dayId);
+export function getScheduleSlot(dayId, period, days = WEEKDAYS) {
+  const day = days.find((item) => item.id === dayId);
   const subject = day?.subjects[period - 1] ?? null;
   if (!day || !subject) return null;
 

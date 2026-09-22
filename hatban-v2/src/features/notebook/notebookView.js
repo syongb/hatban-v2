@@ -1,3 +1,5 @@
+import { createDialog } from '../../utils/dialog.js';
+import { readSchedule, saveSchedule, resolveNotebookId } from './scheduleSettings.js';
 import { createView } from '../../utils/createView.js';
 import {
   PERIOD_TIMES,
@@ -8,7 +10,7 @@ import {
   getScheduleSlot,
 } from './notebookSchedule.js';
 import { createNotebookCanvas } from './notebookCanvas.js';
-import { createNotebookPng, shareOrDownloadNotebook } from './notebookExport.js';
+import { createNotebookPng, downloadNotebook } from './notebookExport.js';
 import {
   createNotebookHistory,
   filterNotebookHistory,
@@ -46,17 +48,18 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
-function getInitialSelection() {
+function getInitialSelection(days) {
   const current = getCurrentScheduleInfo();
   const dayId = current.dayId || WEEKDAYS[0].id;
-  const currentSlot = current.period ? getScheduleSlot(dayId, current.period) : null;
-  return { dayId, period: currentSlot ? current.period : 1 };
+  const currentSlot = current.period ? getScheduleSlot(dayId, current.period, days) : null;
+  return { dayId, period: currentSlot ? current.period : Math.max(0, days.find(day => day.id === dayId).subjects.findIndex(Boolean) + 1) };
 }
 
 export function renderNotebookView() {
   const storage = createNotebookStorage();
   const currentSchedule = getCurrentScheduleInfo();
-  const initialSelection = getInitialSelection();
+  let days = readSchedule();
+  const initialSelection = getInitialSelection(days);
   let selectedDayId = initialSelection.dayId;
   let selectedPeriod = initialSelection.period;
   let writingSelection = { ...initialSelection };
@@ -94,7 +97,7 @@ export function renderNotebookView() {
               <span class="card-label">이번 주 시간표</span>
               <h2 id="timetable-title">수업 고르기</h2>
             </div>
-            <span class="today-marker">오늘</span>
+            <span class="today-marker">오늘</span><button type="button" class="home-secondary-button" data-schedule-edit>시간표 설정</button>
           </div>
 
           <div class="weekday-tabs" aria-label="요일 선택">
@@ -232,7 +235,7 @@ export function renderNotebookView() {
             </div>
             <button type="button" class="notebook-export-button">
               <span aria-hidden="true">🖼️</span>
-              <span class="notebook-export-button__text">이미지로 저장/공유</span>
+              <span class="notebook-export-button__text">이미지로 저장</span>
             </button>
             <p class="notebook-export-status" role="status" aria-live="polite"></p>
           </section>
@@ -301,16 +304,34 @@ export function renderNotebookView() {
     },
   });
 
-  function currentEntryId() {
-    return openedHistoryEntryId || createEntryId(selectedDayId, selectedPeriod);
+  const editor = element.querySelector('.notebook-editor-card');
+  const empty = document.createElement('p'); empty.className = 'schedule-empty'; empty.textContent = '이 요일에는 수업이 없어요. 다른 요일을 고르거나 시간표를 설정해 주세요.'; empty.hidden = true; workspace.append(empty);
+  const scheduleForm = document.createElement('form');
+  scheduleForm.innerHTML = '<p>과목명을 바꾸거나 비워 두세요. 기존 공책은 지난 배움공책에 그대로 남아요.</p><div class="schedule-settings-grid"></div><p class="schedule-settings-error" role="status"></p><div class="dialog-actions"><button type="button" data-default-schedule>기본 시간표</button><button type="submit">시간표 저장</button></div>';
+  const scheduleDialog = createDialog('우리 반 시간표', scheduleForm, 'schedule-dialog'); element.append(scheduleDialog);
+  function fillScheduleForm(data) {
+    const grid = scheduleForm.querySelector('.schedule-settings-grid'); grid.replaceChildren();
+    data.forEach(day => { const group = document.createElement('fieldset'); const legend = document.createElement('legend'); legend.textContent = day.label; group.append(legend);
+      day.subjects.forEach((subject,i) => { const label = document.createElement('label'); label.textContent = (i+1) + '교시'; const input = document.createElement('input'); input.name = day.id + '-' + i; input.maxLength = 30; input.placeholder = '빈 교시'; input.value = subject || ''; label.append(input); group.append(label); }); grid.append(group);
+    });
   }
+  element.querySelector('[data-schedule-edit]').onclick = () => { fillScheduleForm(days); scheduleDialog.showModal(); };
+  scheduleForm.querySelector('[data-default-schedule]').onclick = () => fillScheduleForm(WEEKDAYS);
+  scheduleForm.onsubmit = event => { event.preventDefault(); saveCurrentNotebook();
+    const next = days.map(day => ({...day, subjects: day.subjects.map((_,i) => scheduleForm.elements.namedItem(day.id + '-' + i).value.trim() || null)}));
+    try { days = saveSchedule(next); } catch { scheduleForm.querySelector('.schedule-settings-error').textContent = '설정을 저장하지 못했어요. 기기 저장 공간을 확인해 주세요.'; return; }
+    const day = days.find(day => day.id === selectedDayId);
+    selectedPeriod = day.subjects[selectedPeriod-1] ? selectedPeriod : day.subjects.findIndex(Boolean)+1;
+    writingSelection = {dayId:selectedDayId,period:selectedPeriod}; scheduleDialog.close(); renderSchedule(); loadSelectedNotebook();
+  };
+  const entryIdFor = (dayId, period) => resolveNotebookId(createEntryId(dayId, period), days.find(day => day.id === dayId)?.subjects[period-1], id => storage.getEntry(id));
 
   function getNotebookContext() {
     if (openedHistoryEntryId) {
       const entry = storage.getEntry(openedHistoryEntryId);
       const historyEntry = normalizeNotebookHistoryEntry(entry, openedHistoryEntryId);
       if (historyEntry) {
-        const scheduleSlot = historyEntry.dayId ? getScheduleSlot(historyEntry.dayId, historyEntry.period) : null;
+        const scheduleSlot = historyEntry.dayId ? getScheduleSlot(historyEntry.dayId, historyEntry.period, days) : null;
         return {
           ...historyEntry,
           isHistory: true,
@@ -321,9 +342,10 @@ export function renderNotebookView() {
       openedHistoryEntryId = null;
     }
 
-    const slot = getScheduleSlot(selectedDayId, selectedPeriod);
+    const slot = getScheduleSlot(selectedDayId, selectedPeriod, days);
+    if (!slot) return null;
     return {
-      id: createEntryId(selectedDayId, selectedPeriod),
+      id: entryIdFor(selectedDayId, selectedPeriod),
       date: getDateForWeekday(selectedDayId),
       dayId: selectedDayId,
       day: slot.day.label,
@@ -375,14 +397,14 @@ export function renderNotebookView() {
   }
 
   function renderSchedule() {
-    const day = WEEKDAYS.find((item) => item.id === selectedDayId);
+    const day = days.find((item) => item.id === selectedDayId);
     scheduleList.innerHTML = day.subjects
       .map((subject, index) => {
         const period = index + 1;
         const time = PERIOD_TIMES[index];
         const isSelected = period === selectedPeriod;
         const isCurrent = selectedDayId === currentSchedule.dayId && period === currentSchedule.period;
-        const entryId = subject ? createEntryId(selectedDayId, period) : '';
+        const entryId = subject ? entryIdFor(selectedDayId, period) : '';
         const hasSavedEntry = entryId ? storage.hasEntry(entryId) : false;
 
         if (!subject) {
@@ -403,7 +425,7 @@ export function renderNotebookView() {
             aria-pressed="${isSelected}"
           >
             <span class="schedule-slot__period">${period}교시${isCurrent ? ' · 지금' : ''}</span>
-            <strong class="schedule-slot__subject">${subject}</strong>
+            <strong class="schedule-slot__subject">${escapeHtml(subject)}</strong>
             <span class="schedule-slot__time">${time.start}–${time.end}</span>
             ${hasSavedEntry ? '<span class="saved-mark" aria-label="저장된 기록 있음">✓</span>' : ''}
           </button>
@@ -500,6 +522,8 @@ export function renderNotebookView() {
 
   function loadSelectedNotebook() {
     const context = getNotebookContext();
+    editor.hidden = !context; empty.hidden = Boolean(context);
+    if (!context) { textDirty = false; drawingDirty = false; return; }
     const entry = storage.getEntry(context.id);
 
     selectedDate.textContent = context.isHistory
@@ -526,6 +550,7 @@ export function renderNotebookView() {
     saveTimer = null;
 
     const context = getNotebookContext();
+    if (!context) return;
     const id = context.id;
     const existingEntry = storage.getEntry(id);
     const now = new Date().toISOString();
@@ -708,7 +733,7 @@ export function renderNotebookView() {
 
     const dayButton = event.target.closest('[data-day-id]');
     if (dayButton) {
-      const day = WEEKDAYS.find((item) => item.id === dayButton.dataset.dayId);
+      const day = days.find((item) => item.id === dayButton.dataset.dayId);
       const firstAvailablePeriod = day.subjects.findIndex(Boolean) + 1;
       selectNotebook(day.id, firstAvailablePeriod);
       return;
@@ -731,6 +756,7 @@ export function renderNotebookView() {
   async function exportCurrentNotebook() {
     if (isExporting) return;
     const context = getNotebookContext();
+    if (!context) return;
     let drawing;
 
     try {
@@ -764,14 +790,9 @@ export function renderNotebookView() {
         text: textarea.value,
         drawing,
       });
-      const result = await shareOrDownloadNotebook(png);
+      await downloadNotebook(png);
       exportStatus.dataset.state = 'success';
-      exportStatus.textContent =
-        result.method === 'shared'
-          ? '공유 메뉴로 보냈어요.'
-          : result.method === 'cancelled'
-            ? '공유를 취소했어요. 공책 내용은 그대로예요.'
-            : 'PNG 파일로 저장했어요.';
+      exportStatus.textContent = 'PNG 파일로 저장했어요.';
     } catch (error) {
       console.warn('[햇반이네] 배움공책 이미지를 만들지 못했습니다.', error);
       exportStatus.dataset.state = 'error';
@@ -780,7 +801,7 @@ export function renderNotebookView() {
       isExporting = false;
       exportButton.disabled = false;
       exportButton.removeAttribute('aria-busy');
-      exportButtonText.textContent = '이미지로 저장/공유';
+      exportButtonText.textContent = '이미지로 저장';
     }
   }
 
@@ -798,6 +819,7 @@ export function renderNotebookView() {
   return {
     element,
     destroy() {
+      scheduleDialog.close();
       saveCurrentNotebook();
       window.clearTimeout(saveTimer);
       window.removeEventListener('pagehide', handlePageHide);

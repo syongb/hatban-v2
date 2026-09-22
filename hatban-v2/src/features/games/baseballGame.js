@@ -1,6 +1,6 @@
 import { BASEBALL_LENGTHS, createBaseballState, submitBaseballGuess } from './baseballLogic.js';
 
-export function mountBaseball(root, done) {
+export function mountBaseball(root, done, { length: selectedLength = 3 } = {}) {
   let state;
   const controls = document.createElement('div');
   const length = document.createElement('select');
@@ -16,11 +16,15 @@ export function mountBaseball(root, done) {
     option.textContent = `${value}자리 숫자`;
     length.append(option);
   });
-  length.value = '3';
+  length.value = String(selectedLength);
+  length.setAttribute('aria-label','숫자야구 자릿수');
+  input.setAttribute('aria-label','추측 숫자');
+  controls.className='baseball-controls'; log.className='baseball-log'; message.className='baseball-message';
+  log.setAttribute('aria-live','polite');
   input.inputMode = 'numeric';
   throwButton.textContent = '던지기';
   again.textContent = '다시 하기';
-  controls.append(length, input, throwButton, again);
+  controls.append(input, throwButton);
   root.append(controls, message, log);
   length.onchange = reset;
   again.onclick = reset;
@@ -38,14 +42,15 @@ export function mountBaseball(root, done) {
   }
 
   function submit() {
+    const previousTries = state.tries;
     const next = submitBaseballGuess(state, input.value);
     const newGuess = next.guesses[0];
     state = next;
     message.textContent = state.message;
-    if (newGuess) {
+    if (newGuess && state.tries > previousTries) {
       const line = document.createElement('p');
       const { strike, ball, out } = newGuess.result;
-      line.textContent = `${newGuess.guess} → ${strike}S ${ball}B${out ? ' OUT' : ''}`;
+      line.innerHTML = `<strong>${newGuess.guess}</strong><span class="strike">${strike} 스트라이크</span><span class="ball">${ball} 볼</span>${out ? '<span>OUT</span>' : ''}`;
       log.prepend(line);
     }
     input.value = '';

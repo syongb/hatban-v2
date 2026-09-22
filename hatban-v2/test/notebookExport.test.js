@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   createNotebookFileName,
   sanitizeFilePart,
-  shareOrDownloadNotebook,
+  downloadNotebook,
   wrapCanvasText,
 } from '../src/features/notebook/notebookExport.js';
 
@@ -28,50 +28,7 @@ test('명시적 줄바꿈을 유지하고 긴 문자열도 폭 안에서 나눈�
   ]);
 });
 
-test('파일 공유를 지원하면 Web Share API를 사용한다', async () => {
-  let sharedPayload = null;
-  class MockFile {
-    constructor(parts, name, options) {
-      Object.assign(this, { parts, name, type: options.type });
-    }
-  }
-  const result = await shareOrDownloadNotebook(
-    { blob: { size: 10 }, fileName: '공책.png' },
-    {
-      FileClass: MockFile,
-      navigatorObject: {
-        canShare: ({ files }) => files[0].type === 'image/png',
-        share: async (payload) => {
-          sharedPayload = payload;
-        },
-      },
-    },
-  );
-
-  assert.equal(result.method, 'shared');
-  assert.equal(sharedPayload.files[0].name, '공책.png');
-});
-
-test('사용자가 공유를 취소하면 다운로드하지 않는다', async () => {
-  const abortError = new Error('cancelled');
-  abortError.name = 'AbortError';
-  const result = await shareOrDownloadNotebook(
-    { blob: { size: 10 }, fileName: '공책.png' },
-    {
-      FileClass: class {},
-      navigatorObject: {
-        canShare: () => true,
-        share: async () => {
-          throw abortError;
-        },
-      },
-    },
-  );
-
-  assert.equal(result.method, 'cancelled');
-});
-
-test('파일 공유 미지원 환경에서는 PNG를 다운로드한다', async () => {
+test('이미지는 공유 없이 PNG로 다운로드한다', async () => {
   let clicked = false;
   const appended = [];
   const link = {
@@ -80,7 +37,7 @@ test('파일 공유 미지원 환경에서는 PNG를 다운로드한다', async 
     },
     remove() {},
   };
-  const result = await shareOrDownloadNotebook(
+  const result = await downloadNotebook(
     { blob: { size: 10 }, fileName: '공책.png' },
     {
       FileClass: class {},

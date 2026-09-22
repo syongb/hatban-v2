@@ -9,16 +9,16 @@ export function formatStopwatch(milliseconds) {
 }
 
 export function createTimerState() {
-  let remaining = 300000; let endsAt = null; let running = false; let ticker = null; const listeners = new Set();
-  const snapshot = () => ({ remaining: running ? Math.max(0, endsAt - Date.now()) : remaining, running });
+  let duration = 300000; let remaining = duration; let endsAt = null; let running = false; let ticker = null; const listeners = new Set();
+  const snapshot = () => ({ duration, remaining: running ? Math.max(0, endsAt - Date.now()) : remaining, running });
   const notify = () => { const state = snapshot(); if (running && state.remaining === 0) { running = false; endsAt = null; remaining = 0; clearInterval(ticker); } listeners.forEach((listener) => listener(snapshot())); };
   const startTick = () => { clearInterval(ticker); ticker = setInterval(notify, 200); };
   return {
     getState: snapshot,
-    setMinutes(minutes) { remaining = Math.max(0, Math.round(minutes * 60000)); endsAt = null; running = false; notify(); },
+    setMinutes(minutes) { clearInterval(ticker); duration = Math.max(0, Math.round(minutes * 60000)); remaining = Math.max(0, Math.round(minutes * 60000)); endsAt = null; running = false; notify(); },
     start() { if (!running && remaining > 0) { endsAt = Date.now() + remaining; running = true; startTick(); notify(); } },
     pause() { if (running) { remaining = Math.max(0, endsAt - Date.now()); endsAt = null; running = false; clearInterval(ticker); notify(); } },
-    reset() { this.pause(); notify(); },
+    reset() { this.pause(); remaining = duration; notify(); },
     subscribe(listener) { listeners.add(listener); listener(snapshot()); return () => listeners.delete(listener); },
   };
 }
