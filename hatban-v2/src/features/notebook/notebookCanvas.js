@@ -212,6 +212,15 @@ export function createNotebookCanvas({ canvas, onDrawingChange, onHistoryChange 
     onDrawingChange();
   }
 
+  function clearAll() {
+    if (!hasDrawing) return;
+    pushUndoSnapshot();
+    clearPixels();
+    sourceDrawing = null;
+    hasDrawing = false;
+    onDrawingChange();
+  }
+
   function setTool(tool) {
     activeTool = tool === 'eraser' ? 'eraser' : 'pen';
     canvas.dataset.tool = activeTool;
@@ -251,5 +260,6 @@ export function createNotebookCanvas({ canvas, onDrawingChange, onHistoryChange 
     setSize,
     setTool,
     undo,
+    clearAll,
   };
 }

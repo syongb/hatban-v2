@@ -76,15 +76,17 @@ export function renderHomeView() {
   function flushMemo(id) { window.clearTimeout(timers.get(id)); timers.delete(id); if (pending.has(id)) { storage.updateMemo(id, { text: pending.get(id) }); pending.delete(id); } }
   function renderMemos(focusId) {
     const list = q(root, '.home-memo-list'); const memos = state().memos;
-    list.replaceChildren(...memos.map((memo) => {
+    list.replaceChildren(...memos.map((memo,index) => {
       const card = document.createElement('article'); card.className = 'home-memo home-memo--' + (COLORS.includes(memo.color) ? memo.color : 'yellow'); card.dataset.memoId = memo.id;
       const toolbar = document.createElement('div'); toolbar.className = 'home-memo__toolbar';
       const title = document.createElement('span'); title.textContent = '메모';
+      const move=document.createElement('div');move.className='home-memo__move';
+      for(const [direction,label,disabled] of [['up','앞으로 이동',index===0],['down','뒤로 이동',index===memos.length-1]]){const button=document.createElement('button');button.type='button';button.dataset.memoMove=direction;button.disabled=disabled;button.textContent=direction==='up'?'←':'→';button.setAttribute('aria-label',label);move.append(button);}
       const colors = document.createElement('div'); colors.className = 'home-memo__colors'; colors.setAttribute('role', 'group'); colors.setAttribute('aria-label', '메모 색상');
       COLORS.forEach((color) => { const button = document.createElement('button'); button.type = 'button'; button.dataset.memoColor = color; button.className = memo.color === color ? 'is-selected' : ''; button.setAttribute('aria-label', color + ' 메모 색상'); colors.append(button); });
       const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'home-delete-button'; remove.dataset.action = 'memo-delete'; remove.textContent = '×'; remove.setAttribute('aria-label', '메모 삭제');
       const textarea = document.createElement('textarea'); textarea.dataset.memoText = ''; textarea.maxLength = 1000; textarea.placeholder = '짧게 적어 보세요.'; textarea.setAttribute('aria-label', '메모 내용'); textarea.value = pending.get(memo.id) ?? memo.text;
-      toolbar.append(title, colors, remove); card.append(toolbar, textarea); return card;
+      toolbar.append(title, move, colors, remove); card.append(toolbar, textarea); return card;
     }));
     if (!memos.length) list.innerHTML = '<p class="home-empty-note">아직 메모가 없어요. 필요한 것을 짧게 적어 보세요.</p>';
     if (focusId) requestAnimationFrame(() => q(list, '[data-memo-id="' + focusId + '"] textarea')?.focus());
@@ -107,6 +109,7 @@ export function renderHomeView() {
     if (action === 'dday-clear') { storage.clearDday(); renderDday(); setShown(q(root, '[data-panel="dday"]'), false); }
     if (action === 'memo-new') renderMemos(storage.createMemo().id);
     if (action === 'memo-delete') { const id = event.target.closest('[data-memo-id]')?.dataset.memoId; if (id && window.confirm('이 메모를 지울까요?')) { pending.delete(id); storage.deleteMemo(id); renderMemos(); } }
+    const mover=event.target.closest('[data-memo-move]');if(mover){const id=mover.closest('[data-memo-id]').dataset.memoId;[...pending.keys()].forEach(flushMemo);const ids=state().memos.map((memo)=>memo.id);const from=ids.indexOf(id),to=from+(mover.dataset.memoMove==='up'?-1:1);if(to>=0&&to<ids.length){[ids[from],ids[to]]=[ids[to],ids[from]];storage.reorderMemos(ids);renderMemos();}return;}
     const color = event.target.closest('[data-memo-color]'); if (color) { const id = color.closest('[data-memo-id]').dataset.memoId; flushMemo(id); storage.updateMemo(id, { color: color.dataset.memoColor }); renderMemos(); }
     const star = event.target.closest('[data-star]'); if (star) { const key = star.parentElement.dataset.rating; const current = Number((state().ratings[today] || {})[key] || 0); const n = Number(star.dataset.star); storage.setRating(today, key, current === n - .5 ? n : n - .5); renderRatings(); }
     const theme = event.target.closest('[data-theme]'); if (theme) { applyPreferences(storage.setPreferences({ themeId: theme.dataset.theme, customColor: null })); renderPreferences(); }

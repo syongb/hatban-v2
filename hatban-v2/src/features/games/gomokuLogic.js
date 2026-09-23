@@ -144,3 +144,34 @@ export function attemptGomokuMove(state, row, col) {
     message: winner ? '' : '',
   };
 }
+
+function candidateMoves(board) {
+  const occupied=[];
+  for(let row=0;row<GOMOKU_SIZE;row+=1)for(let col=0;col<GOMOKU_SIZE;col+=1)if(board[row][col])occupied.push([row,col]);
+  if(!occupied.length)return [[7,7]];
+  const found=new Map();
+  occupied.forEach(([row,col])=>{for(let dr=-2;dr<=2;dr+=1)for(let dc=-2;dc<=2;dc+=1){const r=row+dr,c=col+dc;if(isGomokuCoordinate(r,c)&&board[r][c]===null)found.set(r+','+c,[r,c]);}});
+  return [...found.values()];
+}
+
+function linePotential(board,row,col,stone){
+  const next=cloneBoard(board);next[row][col]=stone;
+  return Math.max(...DIRECTIONS.map(([dr,dc])=>{
+    const run=runLength(next,row,col,dr,dc,stone);let open=0;
+    for(const direction of [-1,1]){let step=1;while(isGomokuCoordinate(row+dr*step*direction,col+dc*step*direction)&&next[row+dr*step*direction][col+dc*step*direction]===stone)step+=1;if(isGomokuCoordinate(row+dr*step*direction,col+dc*step*direction)&&next[row+dr*step*direction][col+dc*step*direction]===null)open+=1;}
+    return run*run*20+open*7;
+  }));
+}
+
+export function chooseGomokuAiMove(state,aiStone=state.turn){
+  if(state.ended||state.turn!==aiStone)return null;
+  const opponent=aiStone===BLACK?WHITE:BLACK;
+  const legal=candidateMoves(state.board).filter(([row,col])=>attemptGomokuMove({...state,turn:aiStone},row,col).accepted);
+  for(const move of legal){const next=attemptGomokuMove({...state,turn:aiStone},...move);if(next.winner===aiStone)return move;}
+  for(const [row,col] of candidateMoves(state.board)){
+    const threat=attemptGomokuMove({...state,turn:opponent},row,col);
+    if(threat.accepted&&threat.winner===opponent&&legal.some(([r,c])=>r===row&&c===col))return [row,col];
+  }
+  const score=([row,col])=>linePotential(state.board,row,col,aiStone)*1.15+linePotential(state.board,row,col,opponent)+Math.max(0,14-Math.abs(row-7)-Math.abs(col-7));
+  return legal.sort((a,b)=>score(b)-score(a)||a[0]-b[0]||a[1]-b[1])[0]||null;
+}

@@ -115,6 +115,12 @@ export function createHomeStorage(storage = window.localStorage) {
       const updatedAt = new Date().toISOString();
       update({ memos: store.memos.map((memo) => memo.id === id ? { ...memo, ...patch, updatedAt } : memo) });
     },
+    reorderMemos(orderedIds) {
+      const byId=new Map(store.memos.map((memo)=>[memo.id,memo]));
+      const ordered=orderedIds.map((id)=>byId.get(id)).filter(Boolean);
+      const seen=new Set(ordered.map((memo)=>memo.id));
+      update({memos:[...ordered,...store.memos.filter((memo)=>!seen.has(memo.id))]});
+    },
     deleteMemo(id) { update({ memos: store.memos.filter((memo) => memo.id !== id) }); },
     setRating(dateKey, category, value) {
       const rating = { ...(isRecord(store.ratings[dateKey]) ? store.ratings[dateKey] : {}), [category]: value };

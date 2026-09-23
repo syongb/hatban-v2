@@ -1,9 +1,11 @@
-import { BLACK, GOMOKU_SIZE, WHITE, attemptGomokuMove, createGomokuState } from './gomokuLogic.js';
+import { BLACK, GOMOKU_SIZE, WHITE, attemptGomokuMove, chooseGomokuAiMove, createGomokuState } from './gomokuLogic.js';
 
 const stoneLabel = (stone) => stone === BLACK ? '흑돌' : '백돌';
 
-export function mountGomoku(root, done) {
+export function mountGomoku(root, done, {mode='pvp',playerStone=BLACK}={}) {
   let state = createGomokuState();
+  const aiStone=playerStone===BLACK?WHITE:BLACK;
+  let aiTimer=null;
   const status = document.createElement('p');
   const notice = document.createElement('p');
   const boardFrame = document.createElement('div');
@@ -20,6 +22,7 @@ export function mountGomoku(root, done) {
   notice.className = 'gomoku-notice';
   actions.className = 'gomoku-actions';
   rulesButton.textContent = '렌주룰 설명';
+  rulesButton.type = 'button';
   again.textContent = '다시 하기';
   dialog.className = 'gomoku-rules';
   dialog.hidden = true;
@@ -49,7 +52,8 @@ export function mountGomoku(root, done) {
   again.onclick = () => { state = createGomokuState(); render(); };
 
   function render() {
-    status.textContent = state.ended ? `${stoneLabel(state.winner)} 승리!` : `${stoneLabel(state.turn)} 차례`;
+    const aiThinking=mode==='ai'&&!state.ended&&state.turn===aiStone;
+    status.textContent = state.ended ? `${stoneLabel(state.winner)} 승리!` : aiThinking ? 'AI 생각 중...' : `${stoneLabel(state.turn)} 차례`;
     notice.textContent = state.message;
     notice.hidden = !state.message;
     board.replaceChildren(
@@ -71,7 +75,7 @@ export function mountGomoku(root, done) {
         cell.className = 'gomoku-cell';
         cell.style.setProperty('--row', rowIndex);
         cell.style.setProperty('--col', colIndex);
-        cell.disabled = Boolean(stone) || state.ended;
+        cell.disabled = Boolean(stone) || state.ended || aiThinking;
         cell.setAttribute('aria-label', `${rowIndex + 1}행 ${colIndex + 1}열${stone ? ` ${stoneLabel(stone)}` : ' 빈 교점'}`);
         if (stone) {
           const piece = document.createElement('span');
@@ -89,12 +93,20 @@ export function mountGomoku(root, done) {
           state = next;
           if (state.winner) done(1, { winner: state.winner });
           render();
+          scheduleAi();
         };
         return cell;
       })),
     );
   }
 
+  function scheduleAi(){
+    window.clearTimeout(aiTimer);
+    if(mode!=='ai'||state.ended||state.turn!==aiStone)return;
+    aiTimer=window.setTimeout(()=>{const move=chooseGomokuAiMove(state,aiStone);if(!move)return;state=attemptGomokuMove(state,...move);if(state.winner)done(1,{winner:state.winner});render();},180);
+  }
+
   render();
-  return () => { dialog.hidden = true; state = { ...state, ended: true }; };
+  scheduleAi();
+  return () => { window.clearTimeout(aiTimer);dialog.hidden = true; state = { ...state, ended: true }; };
 }

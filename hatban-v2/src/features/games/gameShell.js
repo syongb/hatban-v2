@@ -33,7 +33,7 @@ export function formatRecord(id, entry) {
 export function gameList(onOpen) {
   const box=document.createElement('div');box.className='games-grid';
   for(const [id,[icon,name,description,tag]] of Object.entries(games)) {
-    const button=document.createElement('button');button.className='game-card game-card--'+id;
+    const button=document.createElement('button');button.type='button';button.className='game-card game-card--'+id;
     button.innerHTML='<span class="game-card__icon">'+icon+'</span><span><span class="game-card__skill">'+tag+'</span><strong>'+name+'</strong><small>'+description+'</small></span><span class="game-card__arrow">↗</span>';
     button.onclick=()=>onOpen(id);box.append(button);
   }return box;
@@ -42,40 +42,46 @@ export function mountGame(id,onBack) {
   const records=createGameRecords();
   const root=document.createElement('section');root.className='screen game-play game-play--'+id;
   const header=document.createElement('header');header.className='game-header';
-  const back=document.createElement('button');back.textContent='← 집중 게임 목록';back.onclick=onBack;
+  const back=document.createElement('button');back.type='button';back.textContent='← 집중 게임 목록';back.onclick=onBack;
   const title=document.createElement('h1');title.textContent=games[id][0]+' '+games[id][1];header.append(back,title);
   const intro=document.createElement('section');intro.className='game-intro';
   const desc=document.createElement('p');desc.textContent=games[id][2];
   const controls=document.createElement('div');controls.className='game-options';
   const best=document.createElement('p');best.className='game-best';best.setAttribute('aria-live','polite');
   const legacy=document.createElement('p');legacy.className='game-legacy';
-  const start=document.createElement('button');start.className='game-start';start.textContent='게임 시작';
+  const start=document.createElement('button');start.type='button';start.className='game-start';start.textContent='게임 시작';
   const body=document.createElement('div');body.className='game-body';body.hidden=true;
   const toolbar=document.createElement('div');toolbar.className='game-session-bar';toolbar.hidden=true;
   const sessionBest=document.createElement('span');
-  const restart=document.createElement('button');restart.textContent='다시 하기';
-  const settingsButton=document.createElement('button');settingsButton.textContent='설정 / 기록';
+  const restart=document.createElement('button');restart.type='button';restart.textContent='다시 하기';
+  const settingsButton=document.createElement('button');settingsButton.type='button';settingsButton.textContent='설정 / 기록';
   toolbar.append(sessionBest,restart,settingsButton);intro.append(desc,controls,best,legacy,start);root.append(header,intro,toolbar,body);
   let settings={},cleanup=()=>{},resultDialog=null,finished=false;
   function select(key,label,choices,initial) {
     const wrap=document.createElement('label');wrap.textContent=label;const input=document.createElement('select');input.setAttribute('aria-label',label);
     choices.forEach(([value,text])=>{const option=document.createElement('option');option.value=value;option.textContent=text;input.append(option);});input.value=initial;settings[key]=initial;
-    input.onchange=()=>{settings[key]=input.value;showBest();};wrap.append(input);controls.append(wrap);
+    input.onchange=()=>{settings[key]=input.value;showBest();};wrap.append(input);controls.append(wrap);return input;
   }
   if(id==='math'){select('operation','연산',[['mul','곱셈'],['div','나눗셈']],'mul');select('difficulty','난이도',levels,'easy');}
   if(id==='mine')select('difficulty','난이도',[['easy','초급 · 9×9 / 지뢰 10'],['medium','중급 · 16×16 / 지뢰 40'],['hard','고급 · 30×16 / 지뢰 99']],'easy');
   if(id==='sudoku')select('difficulty','난이도',[['easy','초급 · 빈칸 30'],['medium','중급 · 빈칸 42'],['hard','고급 · 빈칸 51']],'easy');
   if(id==='baseball')select('length','자릿수',[['3','3자리'],['4','4자리'],['5','5자리']],'3');
+  if(id==='gomoku'){
+    const mode=select('mode','대전 방식',[['pvp','2인 대전'],['ai','AI 대전']],'pvp');
+    const side=select('playerStone','내 돌',[['black','흑돌 · 먼저 두기'],['white','백돌 · AI가 먼저 두기']],'black');
+    const sideWrap=side.closest('label');sideWrap.hidden=true;
+    mode.addEventListener('change',()=>{sideWrap.hidden=mode.value!=='ai';});
+  }
   if(id==='match'){
     settings.count=20;const label=document.createElement('label');const caption=document.createElement('span');caption.textContent='카드 개수: 20장';
-    const input=document.createElement('input');input.type='range';input.min=10;input.max=50;input.step=2;input.value=20;input.setAttribute('aria-label','카드 개수');
+    const input=document.createElement('input');input.type='range';input.min=10;input.max=72;input.step=2;input.value=20;input.setAttribute('aria-label','카드 개수');
     input.oninput=()=>{settings.count=Number(input.value);caption.textContent='카드 개수: '+input.value+'장';showBest();};label.append(caption,input);controls.append(label);
   }
   const normalized=()=>({...settings,...(id==='baseball'?{length:Number(settings.length)}:{})});
   const bestEntry=()=>records.best(id,compare,normalized());
   function showBest(){best.textContent='🏆 이 설정의 최고 기록 · '+formatRecord(id,bestEntry());const old=records.list(id).filter(entry=>!matchesSettings(entry,normalized()) && Object.keys(normalized()).some(key=>entry.record?.[key] === undefined));legacy.textContent=old.length?'이전 버전 기록 '+old.length+'개 보관 · '+formatRecord(id,old.slice().sort(compare)[0]):'';}
   function closeResult(){resultDialog?.close();resultDialog?.remove();resultDialog=null;}
-  function begin(){window.scrollTo({top:0,behavior:'instant'});cleanup();closeResult();body.replaceChildren();intro.hidden=true;body.hidden=false;toolbar.hidden=false;finished=false;sessionBest.textContent='🏆 '+formatRecord(id,bestEntry());
+  function begin(){cleanup();closeResult();body.replaceChildren();intro.hidden=true;body.hidden=false;toolbar.hidden=false;finished=false;sessionBest.textContent='🏆 '+formatRecord(id,bestEntry());
     const mounts={match:mountMatch,math:mountMath,mine:mountMinesweeper,tensec:mountTenSecond,tictactoe:mountTicTacToe,gomoku:mountGomoku,baseball:mountBaseball,sudoku:mountSudoku};
     cleanup=mounts[id](body,done,normalized());
   }
@@ -90,13 +96,14 @@ export function mountGame(id,onBack) {
     const before=document.createElement('p');before.textContent='이전 최고 · '+formatRecord(id,previous);
     const status=document.createElement('p');status.className='result-message';status.textContent=canSave?(saved?((!previous||score>previous.score)?'✨ 새로운 최고 기록! 저장했어요.':'이 기기에 기록을 저장했어요.'):'기록을 저장하지 못했어요. 기기 저장 공간을 확인해 주세요.'):'깃발과 주변 숫자를 다시 살펴보세요.';
     const actions=document.createElement('div');actions.className='dialog-actions';
-    const retry=document.createElement('button');retry.textContent='다시 하기';retry.onclick=begin;
-    const list=document.createElement('button');list.textContent='게임 목록으로 돌아가기';list.onclick=onBack;actions.append(retry,list);content.append(medal,current,detail,before,status,actions);
+    const retry=document.createElement('button');retry.type='button';retry.textContent='다시 하기';retry.onclick=begin;
+    const list=document.createElement('button');list.type='button';list.textContent='게임 목록으로 돌아가기';list.onclick=onBack;actions.append(retry,list);content.append(medal,current,detail,before,status,actions);
     const heading=record.result==='lost'?'게임 종료':id==='sudoku'?'완성입니다!':record.draw?'무승부!':record.winner?'승리!':'도전 완료!';
     resultDialog=createDialog(heading,content,'result-dialog');root.append(resultDialog);resultDialog.showModal();
     sessionBest.textContent='🏆 '+formatRecord(id,bestEntry());return entry;
   }
   start.onclick=begin;restart.onclick=begin;
+  body.addEventListener('click',()=>{const x=window.scrollX,y=window.scrollY;requestAnimationFrame(()=>window.scrollTo({left:x,top:y,behavior:'instant'}));},{capture:true});
   settingsButton.onclick=()=>{cleanup();closeResult();body.replaceChildren();body.hidden=true;toolbar.hidden=true;intro.hidden=false;showBest();};
   showBest();return {element:root,destroy(){cleanup();closeResult();}};
 }

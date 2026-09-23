@@ -10,6 +10,9 @@ export const HOME_FONTS = {
   jua: { label: '주아', family: "'Jua', system-ui, sans-serif" },
   serif: { label: '차분한 명조', family: "'Noto Serif KR', serif", google: 'Noto+Serif+KR:wght@400;700' },
   hand: { label: '나눔 손글씨', family: "'Nanum Pen Script', cursive", google: 'Nanum+Pen+Script' },
+  cute: { label: '개구쟁이 글씨', family: "'Gaegu', cursive", google: 'Gaegu:wght@400;700' },
+  round: { label: '동글동글', family: "'Dongle', sans-serif", google: 'Dongle:wght@400;700' },
+  bold: { label: '힘찬 제목체', family: "'Black Han Sans', sans-serif", google: 'Black+Han+Sans' },
   sans: { label: '또렷한 고딕', family: "'Noto Sans KR', sans-serif", google: 'Noto+Sans+KR:wght@400;700' },
   system: { label: '기본 글꼴', family: 'system-ui, sans-serif' },
 };

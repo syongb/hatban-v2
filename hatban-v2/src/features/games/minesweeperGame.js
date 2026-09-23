@@ -2,7 +2,7 @@ import { MINE_DIFFICULTIES, adjacentMineCount, createMineState, openMineCell, to
 export function mountMinesweeper(root,done,{difficulty='easy'}={}) {
   const preset=MINE_DIFFICULTIES[difficulty];let state=createMineState(preset.width,preset.mines,preset.height),mode='open',startedAt=null;
   const status=document.createElement('p');status.className='mine-status';
-  const modes=document.createElement('div');modes.className='mine-modes';const open=document.createElement('button'),flag=document.createElement('button');open.textContent='⛏️ 열기';flag.textContent='🚩 깃발';modes.append(open,flag);
+  const modes=document.createElement('div');modes.className='mine-modes';const open=document.createElement('button'),flag=document.createElement('button');open.type=flag.type='button';open.textContent='⛏️ 열기';flag.textContent='🚩 깃발';modes.append(open,flag);
   const hint=document.createElement('p');hint.className='mine-hint';hint.textContent=preset.width>9?'보드를 좌우로 밀어서 모든 칸을 볼 수 있어요.':'첫 클릭은 안전해요. 숫자는 주변 지뢰 수예요.';
   const frame=document.createElement('div');frame.className='mine-scroll';frame.tabIndex=0;frame.setAttribute('aria-label','지뢰찾기판 스크롤 영역');const board=document.createElement('div');board.className='mine-board';board.style.setProperty('--mine-columns',preset.width);board.setAttribute('aria-label',preset.width+' 곱하기 '+preset.height+' 지뢰찾기판');frame.append(board);root.append(status,modes,hint,frame);
   open.onclick=()=>{mode='open';draw();};flag.onclick=()=>{mode='flag';draw();};

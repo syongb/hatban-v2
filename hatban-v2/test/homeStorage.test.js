@@ -41,3 +41,5 @@ test('D-Day는 로컬 날짜 기준으로 미래, 오늘, 지난 날을 구분�
   assert.deepEqual(calculateDday('2026-09-16', today), { days: 0, label: 'D-Day' });
   assert.deepEqual(calculateDday('2026-09-15', today), { days: -1, label: 'D+1' });
 });
+
+test('메모 순서는 기존 내용을 보존하며 저장된다',()=>{const memory=memoryStorage();const home=createHomeStorage(memory);const first=home.createMemo();const second=home.createMemo();home.updateMemo(first.id,{text:'첫째'});home.updateMemo(second.id,{text:'둘째'});home.reorderMemos([second.id,first.id]);assert.deepEqual(createHomeStorage(memory).getState().memos.map(({text})=>text),['둘째','첫째']);});

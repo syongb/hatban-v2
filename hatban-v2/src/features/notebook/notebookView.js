@@ -165,56 +165,20 @@ export function renderNotebookView() {
                 </button>
               </div>
 
-              <div class="drawing-tool-group" aria-label="펜 색상 선택">
-                <span class="drawing-tool-label">색상</span>
-                ${[
-                  ['#1f2937', '검정'],
-                  ['#ef4444', '빨강'],
-                  ['#3b82f6', '파랑'],
-                  ['#16a34a', '초록'],
-                ]
-                  .map(
-                    ([color, label], index) => `
-                      <button
-                        type="button"
-                        class="color-swatch${index === 0 ? ' is-active' : ''}"
-                        data-drawing-color="${color}"
-                        aria-label="${label} 펜"
-                        aria-pressed="${index === 0}"
-                        style="--swatch-color: ${color}"
-                      ></button>
-                    `,
-                  )
-                  .join('')}
-              </div>
+              <label class="drawing-tool-group drawing-picker-control">색상
+                <input type="color" value="#1f2937" data-drawing-color-picker aria-label="펜 색상">
+                <output data-drawing-color-output>#1f2937</output>
+              </label>
 
-              <div class="drawing-tool-group" aria-label="펜 굵기 선택">
-                <span class="drawing-tool-label">굵기</span>
-                ${[
-                  [2, '얇게'],
-                  [4, '보통'],
-                  [8, '굵게'],
-                ]
-                  .map(
-                    ([size, label]) => `
-                      <button
-                        type="button"
-                        class="size-button${size === 4 ? ' is-active' : ''}"
-                        data-drawing-size="${size}"
-                        aria-label="${label} ${size}px"
-                        aria-pressed="${size === 4}"
-                      >
-                        <span style="--preview-size: ${size}px" aria-hidden="true"></span>
-                        ${label}
-                      </button>
-                    `,
-                  )
-                  .join('')}
-              </div>
+              <label class="drawing-tool-group drawing-slider-control">굵기
+                <input type="range" min="1" max="24" step="1" value="4" data-drawing-size-slider aria-label="펜 굵기">
+                <output data-drawing-size-output>4 px</output>
+              </label>
 
               <button type="button" class="undo-button" data-drawing-action="undo" disabled>
                 <span aria-hidden="true">↶</span> 실행 취소
               </button>
+              <button type="button" class="undo-button" data-drawing-action="clear">전체 그림 지우기</button>
             </div>
 
             <div class="notebook-canvas-frame">
@@ -381,6 +345,10 @@ export function renderNotebookView() {
       button.classList.toggle('is-active', isActive);
       button.setAttribute('aria-pressed', String(isActive));
     });
+    const picker=element.querySelector('[data-drawing-color-picker]');picker.value=activeDrawingColor;
+    element.querySelector('[data-drawing-color-output]').textContent=activeDrawingColor;
+    const slider=element.querySelector('[data-drawing-size-slider]');slider.value=activeDrawingSize;
+    element.querySelector('[data-drawing-size-output]').textContent=activeDrawingSize+' px';
   }
 
   function renderWeekdayTabs() {
@@ -730,6 +698,10 @@ export function renderNotebookView() {
       void canvasController.undo();
       return;
     }
+    if (drawingAction?.dataset.drawingAction === 'clear') {
+      if (window.confirm('그림을 모두 지울까요?')) canvasController.clearAll();
+      return;
+    }
 
     const dayButton = event.target.closest('[data-day-id]');
     if (dayButton) {
@@ -807,6 +779,8 @@ export function renderNotebookView() {
 
   element.addEventListener('click', handleClick);
   textarea.addEventListener('input', handleInput);
+  element.querySelector('[data-drawing-color-picker]').addEventListener('input',(event)=>{activeDrawingColor=event.target.value;activeDrawingTool='pen';canvasController.setColor(activeDrawingColor);canvasController.setTool('pen');renderDrawingToolState();});
+  element.querySelector('[data-drawing-size-slider]').addEventListener('input',(event)=>{activeDrawingSize=Number(event.target.value);canvasController.setSize(activeDrawingSize);renderDrawingToolState();});
   exportButton.addEventListener('click', exportCurrentNotebook);
   window.addEventListener('pagehide', handlePageHide);
 
