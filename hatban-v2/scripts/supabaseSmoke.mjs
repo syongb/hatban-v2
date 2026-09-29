@@ -43,6 +43,7 @@ try{
       if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){clearTimeout(timer);reject(new Error(`realtime subscription ${status.toLowerCase()}`));}
     });
   });
+  await new Promise(resolve=>setTimeout(resolve,750));
   assert(await rpc(students[0],'submit_game_score',{p_game:'reaction',p_mode:'default',p_score:200,p_aux:{elapsed:200}}),'better score was not saved');
   const payload=await realtime;assert(payload.new.user_id===aId,'realtime event returned the wrong student');await students[1].removeChannel(channel);
   board=await rpc(students[1],'get_leaderboard',{p_game:'reaction',p_mode:'default',p_limit:10});

@@ -1,0 +1,4 @@
+update public.classrooms
+set join_code_hash='2636389909f27aa15afff120fce0ae534aa4d22a2723812966a731550564f0f7'
+where name='햇반국'
+  and join_code_hash='61302f671d17201b76819a03d784e1afcbc0a80eea184024aa24a8bfc751e7c5';

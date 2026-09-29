@@ -45,3 +45,13 @@ test('마이그레이션은 RLS, 서버 검증, 최고 기록 보존을 선언�
   assert.match(sql,/least\(game_bests\.score,excluded\.score\)/);
   assert.match(sql,/join_code_hash text not null unique/);
 });
+
+test('학급 참가 UI는 코드를 서버 RPC로 보내고 브라우저에서 비교하지 않는다',async()=>{
+  const [view,rotation]=await Promise.all([
+    readFile(new URL('../src/features/online/leaderboardView.js',import.meta.url),'utf8'),
+    readFile(new URL('../supabase/migrations/202609290003_rotate_classroom_join_code.sql',import.meta.url),'utf8'),
+  ]);
+  assert.match(view,/joinClassroom\(joinInput\.value,name\)/);
+  assert.doesNotMatch(view,/window\.prompt/);
+  assert.match(rotation,/2636389909f27aa15afff120fce0ae534aa4d22a2723812966a731550564f0f7/);
+});
