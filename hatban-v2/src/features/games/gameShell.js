@@ -8,6 +8,8 @@ import { mountBaseball } from './baseballGame.js';
 import { mountMath } from './mathGame.js';
 import { mountTenSecond } from './tenSecondGame.js';
 import { mountTicTacToe } from './ticTacToeGame.js';
+import { mountReaction } from './reactionGame.js';
+import { mount2048 } from './game2048.js';
 const games = {
   match:['🧠','짝 맞추기','뒤집고 기억하는 카드 놀이터','기억력'],
   math:['⚡','암산 게임','10초 동안 도전하는 계산 스프린트','순발력'],
@@ -17,6 +19,8 @@ const games = {
   gomoku:['⚫','오목','흑과 백, 다섯 돌의 두뇌 대결','렌주룰'],
   baseball:['⚾','숫자야구','스트라이크와 볼로 비밀 숫자 찾기','논리력'],
   sudoku:['🔢','스도쿠','빈 칸을 채우는 작은 숫자 퍼즐','집중력'],
+  reaction:['🟢','순발력 테스트','초록불이 켜지면 최대한 빠르게 터치!','반응속도'],
+  game2048:['🔶','2048','같은 숫자를 합쳐 2048을 만들어 보세요.','숫자 퍼즐'],
 };
 const levels=[['easy','초급'],['medium','중급'],['hard','고급']];
 const compare=(a,b)=>b.score-a.score;
@@ -28,6 +32,8 @@ export function formatRecord(id, entry) {
   if(id==='tensec')return '오차 '+(Math.abs(entry.score)/1000).toFixed(2)+'초';
   if(id==='baseball')return (r.tries ?? -entry.score)+'번 만에 성공';
   if(id==='mine' || id==='sudoku')return r.elapsed != null ? (r.elapsed/1000).toFixed(1)+'초' : '완료 기록';
+  if(id==='reaction')return r.elapsed+'ms';
+  if(id==='game2048')return entry.score+'점 · 최고 '+(r.maxTile||0);
   return r.draw ? '무승부' : (r.winner === 'black' ? '흑' : r.winner === 'white' ? '백' : r.winner || '')+' 승리';
 }
 export function gameList(onOpen) {
@@ -78,27 +84,27 @@ export function mountGame(id,onBack) {
     input.oninput=()=>{settings.count=Number(input.value);caption.textContent='카드 개수: '+input.value+'장';showBest();};label.append(caption,input);controls.append(label);
   }
   const normalized=()=>({...settings,...(id==='baseball'?{length:Number(settings.length)}:{})});
-  const bestEntry=()=>records.best(id,compare,normalized());
+  const bestEntry=()=>records.best(id,id==='reaction'?((a,b)=>a.score-b.score):compare,normalized());
   function showBest(){best.textContent='🏆 이 설정의 최고 기록 · '+formatRecord(id,bestEntry());const old=records.list(id).filter(entry=>!matchesSettings(entry,normalized()) && Object.keys(normalized()).some(key=>entry.record?.[key] === undefined));legacy.textContent=old.length?'이전 버전 기록 '+old.length+'개 보관 · '+formatRecord(id,old.slice().sort(compare)[0]):'';}
   function closeResult(){resultDialog?.close();resultDialog?.remove();resultDialog=null;}
   function begin(){cleanup();closeResult();body.replaceChildren();intro.hidden=true;body.hidden=false;toolbar.hidden=false;finished=false;sessionBest.textContent='🏆 '+formatRecord(id,bestEntry());
-    const mounts={match:mountMatch,math:mountMath,mine:mountMinesweeper,tensec:mountTenSecond,tictactoe:mountTicTacToe,gomoku:mountGomoku,baseball:mountBaseball,sudoku:mountSudoku};
+    const mounts={match:mountMatch,math:mountMath,mine:mountMinesweeper,tensec:mountTenSecond,tictactoe:mountTicTacToe,gomoku:mountGomoku,baseball:mountBaseball,sudoku:mountSudoku,reaction:mountReaction,game2048:mount2048};
     cleanup=mounts[id](body,done,normalized());
   }
   function done(score,record={}) {
-    if(finished)return;finished=true;const previous=bestEntry();const canSave=record.result!=='lost';let saved=false;
+    if(finished)return;finished=true;const previous=bestEntry();const canSave=!['lost','early'].includes(record.result);let saved=false;
     const entry={gameType:id,score,record:{...normalized(),...record}};
     if(canSave){try{records.add(id,score,entry.record);saved=true;}catch{saved=false;}}
     const content=document.createElement('div');content.className='game-result';
-    const medal=document.createElement('div');medal.className='result-medal';medal.textContent=record.result==='lost'?'💣':record.draw?'🤝':'🏆';
-    const current=document.createElement('strong');current.className='result-score';current.textContent=record.result==='lost'?'다음에는 찾을 수 있어요!':formatRecord(id,entry);
-    const detail=document.createElement('p');detail.textContent=id==='tensec'?'실제 기록 '+(record.elapsed/1000).toFixed(2)+'초':id==='math'?'도전 '+record.questions+'문제':'';
+    const medal=document.createElement('div');medal.className='result-medal';medal.textContent=record.result==='lost'?'💣':record.result==='early'?'⚠️':record.draw?'🤝':'🏆';
+    const current=document.createElement('strong');current.className='result-score';current.textContent=record.result==='lost'?'다음에는 찾을 수 있어요!':record.result==='early'?'너무 빨라요!':formatRecord(id,entry);
+    const detail=document.createElement('p');detail.textContent=id==='tensec'?'실제 기록 '+(record.elapsed/1000).toFixed(2)+'초':id==='math'?'도전 '+record.questions+'문제':id==='sudoku'&&record.result==='lost'?settings.difficulty+' · 실수 3/3':'';
     const before=document.createElement('p');before.textContent='이전 최고 · '+formatRecord(id,previous);
-    const status=document.createElement('p');status.className='result-message';status.textContent=canSave?(saved?((!previous||score>previous.score)?'✨ 새로운 최고 기록! 저장했어요.':'이 기기에 기록을 저장했어요.'):'기록을 저장하지 못했어요. 기기 저장 공간을 확인해 주세요.'):'깃발과 주변 숫자를 다시 살펴보세요.';
+    const status=document.createElement('p');status.className='result-message';const isBest=!previous||(id==='reaction'?score<previous.score:score>previous.score);status.textContent=canSave?(saved?(isBest?'✨ 새로운 최고 기록! 저장했어요.':'이 기기에 기록을 저장했어요.'):'기록을 저장하지 못했어요. 기기 저장 공간을 확인해 주세요.'):(record.result==='early'?'초록불이 켜진 뒤에 눌러 주세요.':'깃발과 주변 숫자를 다시 살펴보세요.');
     const actions=document.createElement('div');actions.className='dialog-actions';
     const retry=document.createElement('button');retry.type='button';retry.textContent='다시 하기';retry.onclick=begin;
     const list=document.createElement('button');list.type='button';list.textContent='게임 목록으로 돌아가기';list.onclick=onBack;actions.append(retry,list);content.append(medal,current,detail,before,status,actions);
-    const heading=record.result==='lost'?'게임 종료':id==='sudoku'?'완성입니다!':record.draw?'무승부!':record.winner?'승리!':'도전 완료!';
+    const heading=record.result==='lost'?'GAME OVER':record.result==='early'?'다시 준비해요':id==='sudoku'?'완성입니다!':record.draw?'무승부!':record.winner?'승리!':'도전 완료!';
     resultDialog=createDialog(heading,content,'result-dialog');root.append(resultDialog);resultDialog.showModal();
     sessionBest.textContent='🏆 '+formatRecord(id,bestEntry());return entry;
   }

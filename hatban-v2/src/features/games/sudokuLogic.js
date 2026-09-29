@@ -12,7 +12,16 @@ export function sudokuMistakes(state, solution = SUDOKU_SOLUTION) {
   return state.values.flatMap((value,index) => state.puzzle[index] === '0' && value !== '0' && value !== solution[index] ? [index] : []);
 }
 export function createSudokuState(puzzle = SUDOKU_PUZZLE) {
-  return { puzzle, values: [...puzzle], complete: false, message: '빈 칸을 눌러 숫자를 바꿔요.' };
+  return { puzzle, values: [...puzzle], complete: false, gameOver:false, mistakes:0, wrong:[], selected:null, message: '빈 칸을 선택하고 숫자를 눌러요.' };
+}
+
+export function selectSudokuCell(state,index){return state.complete||state.gameOver||state.puzzle[index]!=='0'?state:{...state,selected:index};}
+export function inputSudokuNumber(state,number,solution=SUDOKU_SOLUTION){
+  const index=state.selected;if(state.complete||state.gameOver||index===null||state.puzzle[index]!=='0'||number<1||number>9)return state;
+  const value=String(number),values=[...state.values];values[index]=value;
+  const incorrect=value!==solution[index],mistakes=state.mistakes+(incorrect?1:0),wrong=incorrect?[...new Set([...state.wrong,index])]:state.wrong.filter(item=>item!==index);
+  const complete=!values.includes('0')&&values.join('')===solution;
+  return {...state,values,mistakes,wrong,complete,gameOver:mistakes>=3,message:mistakes>=3?'GAME OVER':complete?'완성했어요!':incorrect?'틀렸어요. 다시 살펴보세요.':'좋아요! 다음 빈 칸을 선택하세요.'};
 }
 
 export function cycleSudokuCell(state, index) {

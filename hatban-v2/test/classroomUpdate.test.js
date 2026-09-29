@@ -21,6 +21,7 @@ test('시간표 기본값, 빈 교시, 수정 저장과 기존 공책 식별을 
   assert.equal(resolveNotebookId(base,'과학',()=>null),base);
   assert.equal(old.text,'기존 글');assert.equal(WEEKDAYS[0].subjects[0],'국어');
 });
+test('교시 시간은 저장 후 복원되고 현재 시간 판정에 사용할 수 있다',()=>{const storage=memory(),days=normalizeSchedule(null);days.forEach(day=>{day.times[0]={start:'08:00',end:'08:40'};});saveSchedule(days,storage);const restored=readSchedule(storage);assert.deepEqual(restored[0].times[0],{start:'08:00',end:'08:40'});assert.equal(getScheduleSlot('mon',1,restored).time.start,'08:00');});
 test('기존 홈 데이터와 자유 색상을 같은 키에서 함께 복원한다',()=>{
  const storage=memory();const original=createHomeStorage(storage);original.updateProfile({name:'이전 학생',emoji:'🐱'});const memo=original.createMemo();original.updateMemo(memo.id,{text:'기존 메모'});original.setPreferences({themeId:'sky',fontId:'jua'});
  const before=JSON.parse(storage.getItem(HOME_STORAGE_KEY));const updated=createHomeStorage(storage);updated.setPreferences({customColor:'#ffee22',fontId:'serif'});

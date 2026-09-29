@@ -37,8 +37,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .home-memo textarea { min-height: 80px; margin-top: 2px; }
 .home-memo__colors button { width: 30px; height: 32px; border-radius: 10px; }
 .home-delete-button { width: 36px; height: 36px; }
-.home-memo__move { display:flex; gap:3px; }
-.home-memo__move button { width:36px; min-height:36px; border:0; border-radius:9px; background:#fff9; }
+.home-memo__handle { width:40px; min-height:40px; border:0; border-radius:9px; background:#fff9; cursor:grab; touch-action:none; font-size:22px; }
+.home-memo.is-dragging { opacity:.72; transform:scale(.98); box-shadow:0 12px 28px #25304435; z-index:3; pointer-events:none; }
+.home-memo-list.is-reordering .home-memo { transition:transform .15s ease; }
+.period-time-settings { display:grid; gap:7px; margin-bottom:12px; }
+.period-time-settings>div { display:grid; grid-template-columns:60px 1fr 1fr; gap:8px; align-items:end; }
+.period-time-settings label { display:grid; gap:3px; font-size:12px; }
 .home-rating-list { gap: 2px; }
 .home-rating-item { padding: 5px 0; }
 .home-stars button { min-height: 44px; }
@@ -103,12 +107,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .tool-card p { margin: 0; font-size: 13px; }
 .learning-site-list { grid-template-columns: repeat(auto-fit,minmax(135px,1fr)); gap: 7px; }
 .learning-site-list a { padding: 8px; min-height: 44px; font-size: 13px; }
-.calculator-display { min-height: 56px; padding: 9px 12px; font-size: 30px; }
-.calculator-keys { gap: 6px; }
-.calculator-key { min-height: 44px; border-radius: 10px; }
+.calculator-display { min-height: 48px; padding: 6px 10px; font-size: 25px; }
+.calculator-keys { gap: 4px; }
+.calculator-key { min-height: 42px; border-radius: 9px; font-size:16px; }
 .time-display { padding: 8px; font-size: 34px; }
 .time-controls { gap: 5px; }
 .tool-button, .quick-times button { min-height: 44px; padding: 8px 11px; font-size: 14px; }
+.quick-times { gap:4px; }
+.time-input-label { margin:0; }
 /* Each game keeps its own visual language. */
 .games-grid { gap: 12px; grid-template-columns: repeat(2,minmax(0,1fr)); }
 .game-card { min-height: 110px; gap: 12px; padding: 17px; text-align: left; border: 1px solid #ddd9d1; background: white; transition: transform .16s,box-shadow .16s; }
@@ -210,6 +216,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sudoku-cell { background: #fff; color: #286b9e; }
 .sudoku-cell.is-wrong { color: #b32024; background: #ffe2df; box-shadow: inset 0 0 0 2px #d95050; }
 .sudoku-status { font-size: 13px; }
+.sudoku-cell.is-selected { background:#fff1a8; box-shadow:inset 0 0 0 3px #dc8b24; }
+.sudoku-pad { display:grid; grid-template-columns:repeat(9,1fr); gap:6px; width:min(100%,540px); }
+.sudoku-pad button { min-height:48px; border:0; border-radius:10px; background:var(--theme-soft); color:var(--coral-dark); font-size:20px; font-weight:900; }
+.sudoku-pad button:disabled { opacity:.28; }
+.reaction-pad { width:min(100%,620px); min-height:300px; border:0; border-radius:28px; color:white; font-size:clamp(38px,8vw,72px); font-weight:900; transition:background .18s,transform .18s; }
+.reaction-pad.is-waiting { background:#c34e4e; }
+.reaction-pad.is-go { background:#28a96b; transform:scale(1.015); animation:reaction-pop .18s ease-out; }
+.reaction-pad.is-result { background:#4068b3; }.reaction-pad.is-early { background:#d07a32; }
+@keyframes reaction-pop { from { transform:scale(.96); } }
+.game-2048-status { font-size:18px; font-weight:900; }
+.game-2048-board { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; width:min(92vw,460px); padding:10px; border-radius:18px; background:#9d866f; touch-action:none; outline:none; }
+.tile-2048 { display:grid; place-items:center; aspect-ratio:1; border-radius:12px; background:#cfc1b2; color:#55483c; font-size:clamp(22px,5vw,40px); font-weight:900; animation:tile-pop .13s ease-out; }
+.tile-2048--2{background:#eee5d8}.tile-2048--4{background:#ead8ae}.tile-2048--8{background:#eda76d;color:white}.tile-2048--16{background:#ea8958;color:white}.tile-2048--32{background:#e96b55;color:white}.tile-2048--64{background:#dc4f3e;color:white}.tile-2048--128,.tile-2048--256,.tile-2048--512{background:#e6bd49;color:white}.tile-2048--1024,.tile-2048--2048{background:#dcae24;color:white;font-size:clamp(18px,4vw,32px)}
+@keyframes tile-pop { from { transform:scale(.88);opacity:.6; } }
+.game-card--reaction { background:#edf9f1; }.game-card--game2048 { background:#fff1db; }
 .gomoku-frame { width: min(100%,540px); }
 .gomoku-actions button, .gomoku-rules-close { background: var(--coral-dark); }
 .gomoku-rules { z-index: 80; }

@@ -49,7 +49,7 @@ function escapeHtml(value) {
 }
 
 function getInitialSelection(days) {
-  const current = getCurrentScheduleInfo();
+  const current = getCurrentScheduleInfo(new Date(),days);
   const dayId = current.dayId || WEEKDAYS[0].id;
   const currentSlot = current.period ? getScheduleSlot(dayId, current.period, days) : null;
   return { dayId, period: currentSlot ? current.period : Math.max(0, days.find(day => day.id === dayId).subjects.findIndex(Boolean) + 1) };
@@ -57,8 +57,8 @@ function getInitialSelection(days) {
 
 export function renderNotebookView() {
   const storage = createNotebookStorage();
-  const currentSchedule = getCurrentScheduleInfo();
   let days = readSchedule();
+  let currentSchedule = getCurrentScheduleInfo(new Date(),days);
   const initialSelection = getInitialSelection(days);
   let selectedDayId = initialSelection.dayId;
   let selectedPeriod = initialSelection.period;
@@ -271,22 +271,24 @@ export function renderNotebookView() {
   const editor = element.querySelector('.notebook-editor-card');
   const empty = document.createElement('p'); empty.className = 'schedule-empty'; empty.textContent = '이 요일에는 수업이 없어요. 다른 요일을 고르거나 시간표를 설정해 주세요.'; empty.hidden = true; workspace.append(empty);
   const scheduleForm = document.createElement('form');
-  scheduleForm.innerHTML = '<p>과목명을 바꾸거나 비워 두세요. 기존 공책은 지난 배움공책에 그대로 남아요.</p><div class="schedule-settings-grid"></div><p class="schedule-settings-error" role="status"></p><div class="dialog-actions"><button type="button" data-default-schedule>기본 시간표</button><button type="submit">시간표 저장</button></div>';
+  scheduleForm.innerHTML = '<p>과목과 각 교시의 시작·종료 시간을 설정하세요. 기존 공책은 그대로 남아요.</p><div class="period-time-settings"></div><div class="schedule-settings-grid"></div><p class="schedule-settings-error" role="status"></p><div class="dialog-actions"><button type="submit">시간표 저장</button></div>';
   const scheduleDialog = createDialog('우리 반 시간표', scheduleForm, 'schedule-dialog'); element.append(scheduleDialog);
   function fillScheduleForm(data) {
+    const timeBox=scheduleForm.querySelector('.period-time-settings');timeBox.replaceChildren(...data[0].times.map((time,i)=>{const row=document.createElement('div');row.innerHTML='<strong>'+(i+1)+'교시</strong><label>시작 <input type="time" name="time-start-'+i+'" required value="'+time.start+'"></label><label>종료 <input type="time" name="time-end-'+i+'" required value="'+time.end+'"></label>';return row;}));
     const grid = scheduleForm.querySelector('.schedule-settings-grid'); grid.replaceChildren();
     data.forEach(day => { const group = document.createElement('fieldset'); const legend = document.createElement('legend'); legend.textContent = day.label; group.append(legend);
       day.subjects.forEach((subject,i) => { const label = document.createElement('label'); label.textContent = (i+1) + '교시'; const input = document.createElement('input'); input.name = day.id + '-' + i; input.maxLength = 30; input.placeholder = '빈 교시'; input.value = subject || ''; label.append(input); group.append(label); }); grid.append(group);
     });
   }
   element.querySelector('[data-schedule-edit]').onclick = () => { fillScheduleForm(days); scheduleDialog.showModal(); };
-  scheduleForm.querySelector('[data-default-schedule]').onclick = () => fillScheduleForm(WEEKDAYS);
   scheduleForm.onsubmit = event => { event.preventDefault(); saveCurrentNotebook();
-    const next = days.map(day => ({...day, subjects: day.subjects.map((_,i) => scheduleForm.elements.namedItem(day.id + '-' + i).value.trim() || null)}));
+    const times=days[0].times.map((_,i)=>({start:scheduleForm.elements.namedItem('time-start-'+i).value,end:scheduleForm.elements.namedItem('time-end-'+i).value}));
+    if(times.some(time=>!time.start||!time.end||time.start>=time.end)){scheduleForm.querySelector('.schedule-settings-error').textContent='각 교시의 시작 시간은 종료 시간보다 빨라야 해요.';return;}
+    const next = days.map(day => ({...day,times:times.map(time=>({...time})), subjects: day.subjects.map((_,i) => scheduleForm.elements.namedItem(day.id + '-' + i).value.trim() || null)}));
     try { days = saveSchedule(next); } catch { scheduleForm.querySelector('.schedule-settings-error').textContent = '설정을 저장하지 못했어요. 기기 저장 공간을 확인해 주세요.'; return; }
     const day = days.find(day => day.id === selectedDayId);
     selectedPeriod = day.subjects[selectedPeriod-1] ? selectedPeriod : day.subjects.findIndex(Boolean)+1;
-    writingSelection = {dayId:selectedDayId,period:selectedPeriod}; scheduleDialog.close(); renderSchedule(); loadSelectedNotebook();
+    currentSchedule=getCurrentScheduleInfo(new Date(),days);writingSelection = {dayId:selectedDayId,period:selectedPeriod}; scheduleDialog.close(); renderSchedule(); loadSelectedNotebook();
   };
   const entryIdFor = (dayId, period) => resolveNotebookId(createEntryId(dayId, period), days.find(day => day.id === dayId)?.subjects[period-1], id => storage.getEntry(id));
 

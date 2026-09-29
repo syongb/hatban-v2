@@ -14,6 +14,7 @@ export const PERIOD_TIMES = [
   { start: '12:10', end: '12:50' },
   { start: '13:40', end: '14:20' },
 ];
+WEEKDAYS.forEach(day=>{day.times=PERIOD_TIMES.map(time=>({...time}));});
 
 function toMinutes(time) {
   const [hours, minutes] = time.split(':').map(Number);
@@ -27,11 +28,12 @@ function formatLocalDate(date) {
   return `${year}-${month}-${day}`;
 }
 
-export function getCurrentScheduleInfo(now = new Date()) {
+export function getCurrentScheduleInfo(now = new Date(), days = WEEKDAYS) {
   const jsDay = now.getDay();
   const dayIndex = jsDay >= 1 && jsDay <= 5 ? jsDay - 1 : -1;
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const periodIndex = PERIOD_TIMES.findIndex(
+  const activeTimes=days.find(day=>day.id===WEEKDAYS[dayIndex]?.id)?.times||PERIOD_TIMES;
+  const periodIndex = activeTimes.findIndex(
     ({ start, end }) => currentMinutes >= toMinutes(start) && currentMinutes <= toMinutes(end),
   );
 
@@ -60,7 +62,7 @@ export function getScheduleSlot(dayId, period, days = WEEKDAYS) {
     day,
     period,
     subject,
-    time: PERIOD_TIMES[period - 1],
+    time: day.times?.[period - 1] || PERIOD_TIMES[period - 1],
   };
 }
 
