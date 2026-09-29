@@ -10,6 +10,8 @@ import { mountTenSecond } from './tenSecondGame.js';
 import { mountTicTacToe } from './ticTacToeGame.js';
 import { mountReaction } from './reactionGame.js';
 import { mount2048 } from './game2048.js';
+import { createHomeStorage } from '../home/homeStorage.js';
+import { createLeaderboardWidget } from '../online/leaderboardView.js';
 const games = {
   match:['🧠','짝 맞추기','뒤집고 기억하는 카드 놀이터','기억력'],
   math:['⚡','암산 게임','10초 동안 도전하는 계산 스프린트','순발력'],
@@ -62,7 +64,7 @@ export function mountGame(id,onBack) {
   const restart=document.createElement('button');restart.type='button';restart.textContent='다시 하기';
   const settingsButton=document.createElement('button');settingsButton.type='button';settingsButton.textContent='설정 / 기록';
   toolbar.append(sessionBest,restart,settingsButton);intro.append(desc,controls,best,legacy,start);root.append(header,intro,toolbar,body);
-  let settings={},cleanup=()=>{},resultDialog=null,finished=false;
+  let settings={},cleanup=()=>{},resultDialog=null,finished=false,leaderboard;
   function select(key,label,choices,initial) {
     const wrap=document.createElement('label');wrap.textContent=label;const input=document.createElement('select');input.setAttribute('aria-label',label);
     choices.forEach(([value,text])=>{const option=document.createElement('option');option.value=value;option.textContent=text;input.append(option);});input.value=initial;settings[key]=initial;
@@ -85,7 +87,8 @@ export function mountGame(id,onBack) {
   }
   const normalized=()=>({...settings,...(id==='baseball'?{length:Number(settings.length)}:{})});
   const bestEntry=()=>records.best(id,id==='reaction'?((a,b)=>a.score-b.score):compare,normalized());
-  function showBest(){best.textContent='🏆 이 설정의 최고 기록 · '+formatRecord(id,bestEntry());const old=records.list(id).filter(entry=>!matchesSettings(entry,normalized()) && Object.keys(normalized()).some(key=>entry.record?.[key] === undefined));legacy.textContent=old.length?'이전 버전 기록 '+old.length+'개 보관 · '+formatRecord(id,old.slice().sort(compare)[0]):'';}
+  function showBest(){best.textContent='🏆 이 설정의 최고 기록 · '+formatRecord(id,bestEntry());const old=records.list(id).filter(entry=>!matchesSettings(entry,normalized()) && Object.keys(normalized()).some(key=>entry.record?.[key] === undefined));legacy.textContent=old.length?'이전 버전 기록 '+old.length+'개 보관 · '+formatRecord(id,old.slice().sort(compare)[0]):'';leaderboard?.refresh();}
+  leaderboard=createLeaderboardWidget({game:id,getSettings:normalized,getName:()=>createHomeStorage().getState().profile.name});intro.insertBefore(leaderboard.element,start);leaderboard.refresh();
   function closeResult(){resultDialog?.close();resultDialog?.remove();resultDialog=null;}
   function begin(){cleanup();closeResult();body.replaceChildren();intro.hidden=true;body.hidden=false;toolbar.hidden=false;finished=false;sessionBest.textContent='🏆 '+formatRecord(id,bestEntry());
     const mounts={match:mountMatch,math:mountMath,mine:mountMinesweeper,tensec:mountTenSecond,tictactoe:mountTicTacToe,gomoku:mountGomoku,baseball:mountBaseball,sudoku:mountSudoku,reaction:mountReaction,game2048:mount2048};
@@ -95,6 +98,7 @@ export function mountGame(id,onBack) {
     if(finished)return;finished=true;const previous=bestEntry();const canSave=!['lost','early'].includes(record.result);let saved=false;
     const entry={gameType:id,score,record:{...normalized(),...record}};
     if(canSave){try{records.add(id,score,entry.record);saved=true;}catch{saved=false;}}
+    if(canSave)void leaderboard.submit(score,entry.record);
     const content=document.createElement('div');content.className='game-result';
     const medal=document.createElement('div');medal.className='result-medal';medal.textContent=record.result==='lost'?'💣':record.result==='early'?'⚠️':record.draw?'🤝':'🏆';
     const current=document.createElement('strong');current.className='result-score';current.textContent=record.result==='lost'?'다음에는 찾을 수 있어요!':record.result==='early'?'너무 빨라요!':formatRecord(id,entry);
@@ -111,5 +115,5 @@ export function mountGame(id,onBack) {
   start.onclick=begin;restart.onclick=begin;
   body.addEventListener('click',()=>{const x=window.scrollX,y=window.scrollY;requestAnimationFrame(()=>window.scrollTo({left:x,top:y,behavior:'instant'}));},{capture:true});
   settingsButton.onclick=()=>{cleanup();closeResult();body.replaceChildren();body.hidden=true;toolbar.hidden=true;intro.hidden=false;showBest();};
-  showBest();return {element:root,destroy(){cleanup();closeResult();}};
+  showBest();return {element:root,destroy(){cleanup();closeResult();leaderboard.destroy();}};
 }

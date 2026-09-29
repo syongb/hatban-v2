@@ -1,7 +1,7 @@
 import { BASEBALL_LENGTHS, createBaseballState, submitBaseballGuess } from './baseballLogic.js';
 
 export function mountBaseball(root, done, { length: selectedLength = 3 } = {}) {
-  let state;
+  let state, startedAt;
   const controls = document.createElement('div');
   const length = document.createElement('select');
   const input = document.createElement('input');
@@ -33,6 +33,7 @@ export function mountBaseball(root, done, { length: selectedLength = 3 } = {}) {
 
   function reset() {
     state = createBaseballState(Number(length.value));
+    startedAt = Date.now();
     root.querySelector('.game-completion-notice')?.remove();
     input.value = '';
     input.placeholder = `서로 다른 ${state.length}자리`;
@@ -56,7 +57,7 @@ export function mountBaseball(root, done, { length: selectedLength = 3 } = {}) {
     input.value = '';
     if (state.complete) {
       throwButton.disabled = true;
-      done(-state.tries, { tries: state.tries, length: state.length });
+      done(-state.tries, { tries: state.tries, length: state.length, elapsed: Date.now()-startedAt });
     }
   }
 

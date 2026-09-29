@@ -1,0 +1,4 @@
+project_id = "hatban-v2"
+
+[auth]
+enable_anonymous_sign_ins = true

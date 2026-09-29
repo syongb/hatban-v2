@@ -20,6 +20,7 @@ export function renderToolsView() {
   [1, 3, 5, 10].forEach((minutes) => find(root, '.quick-times').append(makeButton(minutes + '분', { minutes }, '')));
   learningSites.forEach((site) => { const link = document.createElement('a'); link.href = site.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = site.icon + ' ' + site.label + ' ↗'; find(root, '.learning-site-list').append(link); });
   find(root, '.tools-layout').prepend(find(root, '.tool-card--sites'));
+  const layout=find(root,'.tools-layout'),dictionaryCard=find(root,'.dictionary-form').closest('.tool-card'),timerCard=find(root,'.timer-display').closest('.tool-card'),stopwatchCard=find(root,'.stopwatch-display').closest('.tool-card');layout.insertBefore(timerCard,dictionaryCard);layout.insertBefore(dictionaryCard,stopwatchCard);
   let display = '0';
   const setTimer = (state) => { if (document.activeElement !== find(root, '[name="timer-minutes"]')) find(root, '[name="timer-minutes"]').value = state.duration / 60000; find(root, '.timer-display').textContent = formatCountdown(state.remaining); find(root, '.timer-status').textContent = state.remaining === 0 ? '시간이 다 되었어요!' : state.running ? '타이머가 실행 중이에요.' : '일시정지 상태예요.'; };
   const setStopwatch = (state) => { find(root, '.stopwatch-display').textContent = formatStopwatch(state.elapsed); find(root, '.stopwatch-status').textContent = state.running ? '스톱워치가 실행 중이에요.' : state.elapsed ? '일시정지 상태예요.' : '아직 시작하지 않았어요.'; };
